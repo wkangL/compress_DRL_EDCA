@@ -1,0 +1,39 @@
+{
+  "extends": "mac_arrival40_gaming160_cmdp_training.yaml",
+  "identity": {
+    "environment": "single_bss_mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp",
+    "purpose": "three-seed extended constrained TCN-DDQN with the user-specified VO/VI concurrency"
+  },
+  "backend": {
+    "topology": "results/raw/tgax_mac_arrival40_voip40_20_gaming80_40_bv3ul10_inputs_20261030/topology.csv",
+    "flows": "results/raw/tgax_mac_arrival40_voip40_20_gaming80_40_bv3ul10_inputs_20261030/flows.csv",
+    "direct_high_watermark": 0,
+    "direct_admission_poll_us": 500,
+    "timeout_s": 10800
+  },
+  "reward": {
+    "budgets": null,
+    "budget_status": "must be filled only from this workload's independent Default STEP calibration"
+  },
+  "training": {
+    "stages": 30,
+    "episode_s": 20.0,
+    "updates_per_stage": 20,
+    "epsilon_steps": 450
+  },
+  "run": {
+    "mode": "mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp_600step",
+    "seeds": [42, 66, 88],
+    "workers": 3,
+    "output": "results/raw"
+  },
+  "evaluation": {
+    "duration_s": 20.0,
+    "seeds": [],
+    "held_out_seeds": [44, 55, 77],
+    "methods": ["default", "compressed_async_age"],
+    "every_training_steps": 0,
+    "final_only": true,
+    "checkpoint_metric": "not_applicable_final_checkpoint_only"
+  }
+}

@@ -1,0 +1,11 @@
+--- a/src/wifi/model/wifi-mac-queue.cc
++++ b/src/wifi/model/wifi-mac-queue.cc
+@@ -463,6 +463,8 @@
+     {
+         // the given item must be dropped
+         SetMaxSize(currSize);
++        // Research accounting fix: scheduler rejection bypasses Queue::DoEnqueue.
++        DropBeforeEnqueue(item);
+         return false;
+     }
+ 

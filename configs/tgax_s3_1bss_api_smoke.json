@@ -1,0 +1,14 @@
+{
+  "extends": "tgax_s3_official.json",
+  "identity": {
+    "name": "TGax Scenario 3 single-BSS API smoke variant",
+    "status": "debug-only experimental subset; not a TGax performance scenario",
+    "target_bss": 0,
+    "rl_enabled": false
+  },
+  "layout": {
+    "active_cochannel_bss": 1,
+    "selection": "center BSS only for protocol API and trace validation",
+    "official_complete_scenario": false
+  }
+}

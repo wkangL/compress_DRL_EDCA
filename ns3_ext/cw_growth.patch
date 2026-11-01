@@ -1,0 +1,57 @@
+--- a/src/wifi/model/txop.h
++++ b/src/wifi/model/txop.h
+@@ -304,6 +304,18 @@
+      */
+     void UpdateFailedCw(uint8_t linkId);
+ 
++    // Research extension: disabled by default, standard retry/ACK logic is unchanged.
++    void SetResearchCwGrowth(bool enabled, uint32_t alpha, uint32_t beta1Tenths,
++                             uint32_t beta2Tenths, uint32_t gamma)
++    {
++        m_researchGrowth = enabled;
++        m_growthAlpha = alpha;
++        m_growthBeta1 = beta1Tenths;
++        m_growthBeta2 = beta2Tenths;
++        m_growthGamma = gamma;
++    }
++
++
+     /**
+      * Get the current value of the CW variable for the given link. The initial
+      * value is minCw.
+@@ -562,6 +574,8 @@
+      */
+     const std::map<uint8_t, std::unique_ptr<LinkEntity>>& GetLinks() const;
+ 
++    bool m_researchGrowth{false};
++    uint32_t m_growthAlpha{1}, m_growthBeta1{20}, m_growthBeta2{20}, m_growthGamma{7};
+     DroppedMpdu m_droppedMpduCallback;             //!< the dropped MPDU callback
+     Ptr<WifiMacQueue> m_queue;                     //!< the wifi MAC queue
+     Ptr<MacTxMiddle> m_txMiddle;                   //!< the MacTxMiddle
+--- a/src/wifi/model/txop.cc
++++ b/src/wifi/model/txop.cc
+@@ -387,8 +387,22 @@
+         // - CW[AC] shall be set to the lesser of CWmax[AC] and 2^QSRC[AC] × (CWmin[AC] + 1) – 1.
+         // (Section 10.23.2.2 of 802.11-2020)
+         ++link.staRetryCount;
+-        link.cw =
+-            std::min(GetMaxCw(linkId), (1 << link.staRetryCount) * (GetMinCw(linkId) + 1) - 1);
++        if (m_researchGrowth)
++        {
++            if (link.staRetryCount <= m_growthGamma)
++            {
++                const uint64_t beta = link.staRetryCount <= m_growthAlpha
++                                          ? m_growthBeta1 : m_growthBeta2;
++                // Integer ceil for decimal candidates avoids floating-point drift.
++                link.cw = std::min<uint64_t>(GetMaxCw(linkId),
++                                            (beta * (link.cw + 1) + 9) / 10 - 1);
++            }
++        }
++        else
++        {
++            link.cw = std::min(GetMaxCw(linkId),
++                              (1 << link.staRetryCount) * (GetMinCw(linkId) + 1) - 1);
++        }
+     }
+     else
+     {

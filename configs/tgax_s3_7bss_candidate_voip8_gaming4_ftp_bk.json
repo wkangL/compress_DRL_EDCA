@@ -1,0 +1,34 @@
+{
+  "extends": "tgax_s3_7bss_candidate_ftp_bk.json",
+  "identity": {
+    "name": "TGax-model-driven subset7 VoIP8 Gaming4 FTP-to-BK custom concurrency candidate",
+    "status": "single candidate for Default-EDCA baseline review",
+    "target_bss": 0,
+    "rl_enabled": false,
+    "official_complete_scenario": false
+  },
+  "traffic": {
+    "base_variant": "candidate_ftp_bk",
+    "service_counts_per_bss": {
+      "D1": 1,
+      "D2": 1,
+      "D3": 1,
+      "D4": 1,
+      "D5": 4,
+      "D6": 8,
+      "U1": 1,
+      "U2": 1,
+      "U3": 4
+    },
+    "one_way_components_per_bss": 30,
+    "ac_mapping": {
+      "VOIP": "VO",
+      "BV3_BV6_GAMING": "VI",
+      "HTTP": "BE",
+      "FTP": "BK"
+    },
+    "generator_internals_changed": false,
+    "assignment_policy": "preserve every assignment-zero STA and RNG stream from candidate_ftp_bk; place added instances on otherwise idle STAs whenever possible",
+    "classification": "TGax business-model-driven custom concurrency scenario; service counts are not the official Scenario 3 counts"
+  }
+}

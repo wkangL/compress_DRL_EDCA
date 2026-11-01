@@ -1,0 +1,30 @@
+{
+  "extends": "tgax_s3_7bss.json",
+  "identity": {
+    "name": "TGax-based subset7 40-STA multi-AC high-concurrency candidate v1",
+    "status": "Default-EDCA correctness and overload gate before DDQN training",
+    "target_bss": 0,
+    "rl_enabled": false,
+    "official_complete_scenario": false
+  },
+  "traffic": {
+    "service_counts_per_bss": {
+      "bidirectional_voip_pairs": 12,
+      "gaming_uplink": 28,
+      "gaming_downlink": 4,
+      "bv3_uplink": 1,
+      "bv3_downlink": 1,
+      "http_downlink_be": 20,
+      "ftp_uplink_be": 12,
+      "ftp_uplink_bk": 8,
+      "ftp_downlink_bk": 8
+    },
+    "coverage": {
+      "uplink_vo_or_vi_sta": 40,
+      "be_sta": 32,
+      "bk_sta": 16
+    },
+    "generator_internals_changed": false,
+    "classification": "TGax-based research high-concurrency scenario; not the official Scenario 3 traffic mix"
+  }
+}

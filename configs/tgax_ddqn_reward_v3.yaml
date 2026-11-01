@@ -1,0 +1,31 @@
+{
+  "extends": "tgax_ddqn_full40_multiac_v6.yaml",
+  "identity": {
+    "environment": "candidate_full40_multiac_v6",
+    "target_bss": 0,
+    "purpose": "single-seed Reward-v3 objective-alignment validation"
+  },
+  "reward": {
+    "version": "tgax_reward_v3",
+    "qos_threshold_ms": [20.0, 50.0],
+    "on_time_vo": 0.40,
+    "on_time_vi": 0.40,
+    "service_all": 0.10,
+    "jain": 0.10,
+    "missing_demand_rule": "exclude inactive ACs from S_all; zero for missing deadline/Jain evidence"
+  },
+  "run": {
+    "mode": "tgax_ddqn_reward_v3",
+    "seeds": [41],
+    "workers": 1,
+    "output": "results/raw"
+  },
+  "evaluation": {
+    "duration_s": 20.0,
+    "seeds": [44, 45],
+    "held_out_seeds": [46, 47],
+    "methods": ["default", "compressed_async_age"],
+    "every_training_steps": 100,
+    "checkpoint_metric": "gated_reward_v3_mean"
+  }
+}

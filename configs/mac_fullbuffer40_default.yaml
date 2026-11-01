@@ -1,0 +1,40 @@
+{
+  "identity": {
+    "environment": "single_bss_mac_fullbuffer40_default",
+    "purpose": "Default EDCA saturated uplink MAC baseline",
+    "independent_from": "candidate_full40_multiac_v6"
+  },
+  "network": {
+    "topology": "results/raw/tgax_mac_fullbuffer40_inputs_20261028/topology.csv",
+    "sources": "results/raw/tgax_mac_fullbuffer40_inputs_20261028/fullbuffer_sources.csv",
+    "ap_count": 1,
+    "sta_count": 40,
+    "standard": "802.11ax HE SU",
+    "band": "5 GHz",
+    "channel": 42,
+    "width_mhz": 80,
+    "data_mode": "HeMcs7",
+    "control_mode": "OfdmRate6Mbps",
+    "ofdma": false,
+    "mu_mimo": false,
+    "internet_stack": false
+  },
+  "traffic": {
+    "mode": "direct_mac_full_buffer",
+    "vo_primary_sta": [0, 19],
+    "vi_primary_sta": [20, 39],
+    "be_extra_sta": [[0, 9], [20, 29]],
+    "bk_extra_sta": [[10, 15], [30, 35]],
+    "low_watermark_packets": 32,
+    "high_watermark_packets": 64,
+    "refill_poll_us": 100
+  },
+  "run": {
+    "seeds": [41, 42, 43],
+    "association_warmup_s": 2.0,
+    "source_warmup_s": 1.0,
+    "measurement_s": 20.0,
+    "drain_s": 1.0,
+    "trace_level": "summary"
+  }
+}

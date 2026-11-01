@@ -1,0 +1,67 @@
+# 唯一需要编辑的实验配置。修改业务数量、Cost阈值、训练参数和输出目录后，
+# 执行 scripts/run_mac_cmdp_experiment.py train。
+experiment:
+  id: mac_cmdp_custom
+  description: "Single-BSS direct-MAC custom CMDP experiment"
+  # Canonical source input.  Kept outside results/ so a clean source-only
+  # deployment does not depend on historical experiment outputs.
+  topology_template: configs/assets/mac_cmdp_topology40.csv
+  parent_config: configs/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp.yaml
+
+output:
+  # 命令行 --output 可以覆盖此目录。业务、配置、训练、表格和图片全部放在其下。
+  root: results/experiments/mac_cmdp_custom
+
+traffic:
+  - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 40, assignment: spread}
+  - {name: voip_dl, model: VOIP, direction: DL, ac: VO, count: 20, assignment: spread}
+  - {name: gaming_ul, model: GMG, direction: UL, ac: VI, count: 50, assignment: round_robin}
+  - {name: gaming_dl, model: GMG, direction: DL, ac: VI, count: 30, assignment: spread}
+  - {name: bv3_ul, model: BV3, direction: UL, ac: VI, count: 10, assignment: spread, sta_offset: 2}
+  - {name: http_be_dl, model: HTTP, direction: DL, ac: BE, count: 20, assignment: spread}
+  - {name: ftp_be_ul, model: FTP, direction: UL, ac: BE, count: 12, assignment: spread}
+  - {name: http_bk_dl, model: HTTP, direction: DL, ac: BK, count: 16, assignment: spread}
+  - {name: ftp_bk_ul, model: FTP, direction: UL, ac: BK, count: 8, assignment: spread}
+
+cmdp:
+  utility_weights: {VO: 0.40, VI: 0.40, BE: 0.10, BK: 0.10}
+  # All references, minimums and budgets are manually chosen here.  No
+  # Default run or evaluation result is allowed to rewrite them.
+  delay_reference_ms: {VO: 20.0, VI: 50.0}
+  delay_excess_cap: 3.0
+  minimum_jain: 0.50
+  minimum_satisfaction: {BE: 0.02, BK: 0.005}
+  cost_budgets: {delay: 0.30, loss: 0.15, fairness: 0.0, starvation: 0.25}
+  multiplier_initial: [0.1, 0.1, 0.1, 0.1]
+  multiplier_learning_rate: 0.01
+  multiplier_ema_alpha: 0.2
+  multiplier_maximum: 3.0
+
+simulation:
+  direct_high_watermark: 0
+  evaluation_duration_s: 20
+  training_seeds: [42, 66, 88]
+  # 必须与training_seeds分开，确保final checkpoint在未见随机种子上评估。
+  evaluation_seeds: [44, 55, 77]
+
+training:
+  # Seed-level parallelism.  Each worker owns one independent output/checkpoint
+  # tree and normally consumes one ns-3 CPU core (plus light PyTorch work).
+  parallel_workers: 3
+  # 总环境步数 = stages * episode_s / 1 s。当前为20*20=400步/seed。
+  stages: 20
+  episode_s: 20.0
+  updates_per_stage: 20
+  epsilon_steps: 450
+  q_lr: 0.0003
+  representation_lr: 0.0001
+  batch_size: 32
+  replay_capacity: 20000
+  warmup: 64
+  discount: 0.98
+  grad_clip: 10.0
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  target_update_mode: soft
+  target_tau: 0.001
+

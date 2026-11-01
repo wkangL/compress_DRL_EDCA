@@ -1,0 +1,28 @@
+{
+  "description": "Predeclared representative subset of the frozen 865-action TGax space",
+  "scalar_index_map": {
+    "alpha": [1, 2, 3],
+    "beta1": [1.6, 2.0],
+    "beta2": [2.0, 2.4, 2.8],
+    "gamma": [5, 6, 7]
+  },
+  "candidates": {
+    "default_native": {"action": [16, 0, 0, 0, 0], "custom": false, "class": "baseline", "description": "P0 parameters plus native ns-3 BEB fallback"},
+    "p0_c_mild": {"action": [0, 0, 0, 0, 0], "custom": true, "class": "CW-only", "description": "P0; alpha1 beta1=1.6 beta2=2.0 gamma5"},
+    "p0_c_balanced": {"action": [0, 1, 0, 0, 1], "custom": true, "class": "CW-only", "description": "P0; alpha2 beta1=1.6 beta2=2.0 gamma6"},
+    "p0_c_late24": {"action": [0, 1, 0, 1, 1], "custom": true, "class": "CW-only", "description": "P0; alpha2 beta1=1.6 beta2=2.4 gamma6"},
+    "p0_c_strong": {"action": [0, 2, 1, 2, 2], "custom": true, "class": "CW-only", "description": "P0; alpha3 beta1=2.0 beta2=2.8 gamma7"},
+    "p1_native": {"action": [1, 0, 0, 0, 0], "custom": false, "class": "profile-only", "description": "P1 plus native BEB"},
+    "p1_c_late24": {"action": [1, 1, 0, 1, 1], "custom": true, "class": "profile+CW", "description": "P1; alpha2 beta1=1.6 beta2=2.4 gamma6"},
+    "p3_native": {"action": [3, 0, 0, 0, 0], "custom": false, "class": "profile-only", "description": "P3 plus native BEB"},
+    "p3_c_late24": {"action": [3, 1, 0, 1, 1], "custom": true, "class": "profile+CW", "description": "P3; alpha2 beta1=1.6 beta2=2.4 gamma6"},
+    "p5_native": {"action": [5, 0, 0, 0, 0], "custom": false, "class": "profile-only", "description": "P5 plus native BEB; high TXOP and conservative BE/BK"},
+    "p5_c_learned": {"action": [5, 0, 1, 0, 0], "custom": true, "class": "profile+CW", "description": "P5; alpha1 beta1=2.0 beta2=2.0 gamma5, DDQN@200 dominant"},
+    "p8_native": {"action": [8, 0, 0, 0, 0], "custom": false, "class": "profile-only", "description": "P8 plus native BEB; long VO/VI TXOP"},
+    "p8_c_late24": {"action": [8, 1, 0, 1, 1], "custom": true, "class": "profile+CW", "description": "P8; alpha2 beta1=1.6 beta2=2.4 gamma6"},
+    "p9_native": {"action": [9, 0, 0, 0, 0], "custom": false, "class": "negative-control", "description": "P9 plus native BEB; DDQN@400 dominant profile"},
+    "p10_native": {"action": [10, 0, 0, 0, 0], "custom": false, "class": "negative-control", "description": "P10 plus native BEB; previously observed conservative profile"},
+    "p6_native": {"action": [6, 0, 0, 0, 0], "custom": false, "class": "profile-only", "description": "P6 plus native BEB; Default-like BE AIFSN/CWmin with smaller CWmax"},
+    "p15_native": {"action": [15, 0, 0, 0, 0], "custom": false, "class": "negative-control", "description": "P15 plus native BEB; extreme BE/BK CWmin"}
+  }
+}

@@ -1,0 +1,19 @@
+--- a/src/wifi/test/wifi-txop-test.cc
++++ b/src/wifi/test/wifi-txop-test.cc
+@@ -1346,3 +1346,16 @@
+ }
+ 
+ static WifiTxopTestSuite g_wifiTxopTestSuite; ///< the test suite
++
++// A separate scope-specific suite; the original wifi-txop suite remains unchanged.
++class ResearchNonHtTxopTestSuite : public TestSuite
++{
++  public:
++    ResearchNonHtTxopTestSuite() : TestSuite("wifi-txop-nonht", Type::UNIT)
++    {
++        AddTestCase(new WifiTxopTest({true,true,false,false,true}), TestCase::Duration::QUICK);
++        AddTestCase(new WifiTxopTest({true,false,true,false,false}), TestCase::Duration::QUICK);
++        AddTestCase(new WifiTxopTest({true,true,true,true,true}), TestCase::Duration::QUICK);
++    }
++};
++static ResearchNonHtTxopTestSuite g_researchNonHtTxopTestSuite;

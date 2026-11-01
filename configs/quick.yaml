@@ -1,0 +1,6 @@
+{
+  "extends": "default.yaml",
+  "run": {"mode": "quick", "seeds": [1,2], "workers": 4},
+  "training": {"batch_size": 32, "warmup": 64, "stages": 4, "episodes_per_stage": 4, "updates_per_stage": 100, "episode_s": 10.0, "epsilon_steps": 160},
+  "evaluation": {"duration_s": 10.0, "seeds": [101,102]}
+}

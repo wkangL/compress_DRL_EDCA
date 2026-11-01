@@ -1,0 +1,49 @@
+--- a/src/wifi/model/txop.h
++++ b/src/wifi/model/txop.h
+@@ -304,6 +304,10 @@
+      */
+     void UpdateFailedCw(uint8_t linkId);
+ 
++    // Trace-only research hook for an EDCAF losing an internal virtual collision.
++    void NotifyInternalCollisionTrace(uint8_t linkId) { m_internalCollisionTrace(linkId); }
++
++
+     // Research extension: disabled by default, standard retry/ACK logic is unchanged.
+     void SetResearchCwGrowth(bool enabled, uint32_t alpha, uint32_t beta1Tenths,
+                              uint32_t beta2Tenths, uint32_t gamma)
+@@ -590,6 +594,8 @@
+ 
+     BackoffValueTracedCallback m_backoffTrace; //!< backoff trace value
+     CwValueTracedCallback m_cwTrace;           //!< CW trace value
++    TracedCallback<uint8_t /* linkId */> m_internalCollisionTrace; //!< internal EDCAF collision
++
+ 
+   private:
+     /**
+--- a/src/wifi/model/txop.cc
++++ b/src/wifi/model/txop.cc
+@@ -159,7 +159,11 @@
+             .AddTraceSource("CwTrace",
+                             "Trace source for contention window values",
+                             MakeTraceSourceAccessor(&Txop::m_cwTrace),
+-                            "ns3::Txop::CwValueTracedCallback");
++                            "ns3::Txop::CwValueTracedCallback")
++            .AddTraceSource("InternalCollision",
++                            "Trace source fired when this EDCAF loses an internal collision",
++                            MakeTraceSourceAccessor(&Txop::m_internalCollisionTrace),
++                            "ns3::TracedCallback::Uint8");
+     return tid;
+ }
+ 
+--- a/src/wifi/model/frame-exchange-manager.cc
++++ b/src/wifi/model/frame-exchange-manager.cc
+@@ -1155,6 +1155,9 @@
+ {
+     NS_LOG_FUNCTION(this);
+ 
++    // Observation only: notify the losing EDCAF before retry/CW state is updated.
++    txop->NotifyInternalCollisionTrace(m_linkId);
++
+     // For internal collisions, the frame retry counts associated with the MSDUs, A-MSDUs, or MMPDUs
+     // involved in the internal collision shall be incremented. (Sec. 10.23.2.12.1 of 802.11-2020)
+     // We do not prepare the PSDU that the AC losing the internal collision would have

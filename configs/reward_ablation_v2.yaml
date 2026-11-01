@@ -1,0 +1,10 @@
+{
+  "extends": "reward_v2.yaml",
+  "run": {"mode": "reward_quick", "seeds": [11], "workers": 2},
+  "training": {
+    "batch_size": 32, "warmup": 32, "stages": 6, "episodes_per_stage": 4,
+    "updates_per_stage": 100, "episode_s": 5.0, "traffic_warmup_s": 2.0,
+    "epsilon_steps": 120, "target_update_mode": "soft", "target_tau": 0.001
+  },
+  "evaluation": {"traffic_warmup_s": 2.0, "duration_s": 8.0, "seeds": [101]}
+}

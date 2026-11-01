@@ -1,0 +1,90 @@
+{
+  "traffic": {
+    "C_ref_mbps": 25.54,
+    "payload_bytes": {"VO": 160, "VI": 1280, "BE": 1500, "BK": 1600},
+    "payload_models": {
+      "VO": {"type": "fixed", "bytes": 160},
+      "VI": {"type": "lognormal", "mean_bytes": 1280, "sigma": 0.35, "min_bytes": 256, "max_bytes": 1500},
+      "BE": {"type": "fixed", "bytes": 1500},
+      "BK": {"type": "fixed", "bytes": 1600}
+    },
+    "payload_model_notes": {
+      "VO": "Fixed 160 bytes follows common VoIP payload settings used in IEEE 802.11e EDCA simulation studies.",
+      "VI": "Video uses a variable truncated-lognormal payload with 1280-byte nominal mean, because video packet sizes are service-dependent and variable.",
+      "BE": "Fixed 1500 bytes follows the common MTU-sized best-effort data packet assumption.",
+      "BK": "Fixed 1600 bytes follows common background traffic packet settings used in IEEE 802.11e EDCA simulation studies."
+    },
+    "load_factors": {
+      "light": 0.30,
+      "moderate": 0.55,
+      "stress": 0.85,
+      "near_saturation": 1.00,
+      "overload": 1.20
+    },
+    "scenarios": {
+      "S0a_BE_capacity_check": {
+        "num_sta": 10,
+        "load_factor": "near_saturation",
+        "ac_mix": {"VO": 0.0, "VI": 0.0, "BE": 1.0, "BK": 0.0},
+        "direction_mix": {"UL": 1.0, "DL": 0.0},
+        "arrival": "poisson",
+        "full_buffer": false
+      },
+      "S0b_BE_full_buffer": {
+        "num_sta": 10,
+        "load_factor": "overload",
+        "ac_mix": {"VO": 0.0, "VI": 0.0, "BE": 1.0, "BK": 0.0},
+        "direction_mix": {"UL": 1.0, "DL": 0.0},
+        "arrival": "full_buffer",
+        "full_buffer": true
+      },
+      "S1_balanced_moderate": {
+        "load_factor": "moderate",
+        "ac_mix": {"VO": 0.05, "VI": 0.20, "BE": 0.65, "BK": 0.10},
+        "direction_mix": {"UL": 0.6, "DL": 0.4},
+        "arrival": "poisson",
+        "full_buffer": false
+      },
+      "S2_realtime_stress": {
+        "load_factor": "stress",
+        "ac_mix": {"VO": 0.15, "VI": 0.35, "BE": 0.45, "BK": 0.05},
+        "direction_mix": {"UL": 0.5, "DL": 0.5},
+        "arrival": "poisson",
+        "full_buffer": false
+      },
+      "S3_BE_dominant_stress": {
+        "load_factor": "stress",
+        "ac_mix": {"VO": 0.02, "VI": 0.08, "BE": 0.80, "BK": 0.10},
+        "direction_mix": {"UL": 0.7, "DL": 0.3},
+        "arrival": "poisson",
+        "full_buffer": false
+      },
+      "S4_overload": {
+        "num_sta": 10,
+        "load_factor": "overload",
+        "ac_mix": {"VO": 0.08, "VI": 0.22, "BE": 0.60, "BK": 0.10},
+        "direction_mix": {"UL": 0.5, "DL": 0.5},
+        "arrival": "poisson",
+        "full_buffer": false
+      },
+      "S_test_single_sta_BE": {
+        "num_sta": 1,
+        "offered_load_mbps": 1.0,
+        "load_factor": "light",
+        "ac_mix": {"VO": 0.0, "VI": 0.0, "BE": 1.0, "BK": 0.0},
+        "direction_mix": {"UL": 1.0, "DL": 0.0},
+        "arrival": "poisson",
+        "full_buffer": false
+      },
+      "S_test_10sta_BE_light": {
+        "num_sta": 10,
+        "offered_load_mbps": 5.0,
+        "load_factor": "light",
+        "ac_mix": {"VO": 0.0, "VI": 0.0, "BE": 1.0, "BK": 0.0},
+        "direction_mix": {"UL": 1.0, "DL": 0.0},
+        "arrival": "poisson",
+        "full_buffer": false
+      }
+    }
+  }
+}

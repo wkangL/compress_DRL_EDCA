@@ -1,0 +1,20 @@
+{
+  "extends": "tgax_s3_official.json",
+  "identity": {
+    "name": "TGax-parameter-based simplified 3-BSS scene",
+    "status": "optional reduced-cost mechanism and debugging environment",
+    "target_bss": 0,
+    "rl_enabled": false
+  },
+  "layout": {
+    "active_cochannel_bss": 3,
+    "sta_per_bss": 10,
+    "selection": "center cochannel BSS and two adjacent cochannel BSSs forming a 30 m equilateral triangle",
+    "official_complete_scenario": false
+  },
+  "traffic_scaling": {
+    "method": "one-quarter integer scaling of each TGax per-40-STA service count",
+    "reference_sta_per_bss": 40,
+    "active_sta_per_bss": 10
+  }
+}

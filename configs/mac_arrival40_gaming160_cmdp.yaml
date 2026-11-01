@@ -1,0 +1,38 @@
+{
+  "extends": "tgax_ddqn_full40_multiac_v2.yaml",
+  "identity": {
+    "environment": "single_bss_mac_arrival40_gaming160_cmdp",
+    "target_bss": 0,
+    "purpose": "direct-MAC high-Gaming constrained TCN-DDQN"
+  },
+  "backend": {
+    "binary": "vendor/ns-3.44/build/scratch/ns3.44-tgax-control.exe",
+    "topology": "results/raw/tgax_mac_arrival40_gaming160_inputs_20261029/topology.csv",
+    "flows": "results/raw/tgax_mac_arrival40_gaming160_inputs_20261029/flows.csv",
+    "traffic_mode": "mac-arrival",
+    "phy_backend": "spectrum",
+    "direct_high_watermark": 64,
+    "direct_admission_poll_us": 500,
+    "timeout_s": 1800
+  },
+  "reward": {
+    "version": "tgax_cmdp_v1",
+    "qos_threshold_ms": [20.0, 50.0],
+    "utility_weights": [0.4, 0.4, 0.1, 0.1],
+    "utility_transform": "log1p(9*S)/log(10)",
+    "low_priority_min_satisfaction": [0.15, 0.05],
+    "budgets": null,
+    "budget_status": "must be calibrated with corrected Default STEP ledgers before training",
+    "multiplier_initial": [0.1, 0.1, 0.1, 0.1],
+    "multiplier_learning_rate": 0.01,
+    "multiplier_ema_alpha": 0.2,
+    "multiplier_maximum": 1.0,
+    "multiplier_update": "once_per_20_step_episode"
+  },
+  "run": {
+    "mode": "mac_arrival40_gaming160_cmdp_single_seed",
+    "seeds": [41],
+    "workers": 1,
+    "output": "results/raw"
+  }
+}

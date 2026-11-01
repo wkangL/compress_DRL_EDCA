@@ -1,0 +1,47 @@
+# Local toolchains and Python environments
+.tools/
+.venv/
+.venv_*/
+venv/
+env/
+
+# Python caches and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Bundled third-party source/build tree. Install ns-3 separately on each host.
+vendor/
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+
+# Generated experiment data and local exports (can be tens of GB)
+results/
+output/
+exports/
+tmp/
+.tmp/
+compress_DRL_EDCA.zip
+*.tar.gz
+
+# Runtime/recovery artifacts kept outside source control
+reports/recovery/
+reports/**/*.log
+*.pt
+*.pth
+*.ckpt
+*.dll
+*.exe
+
+# Editors and operating-system metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini

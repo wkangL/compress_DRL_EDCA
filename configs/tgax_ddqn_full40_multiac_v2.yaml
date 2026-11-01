@@ -1,0 +1,71 @@
+{
+  "extends": "tgax_ddqn_extended_seed41.yaml",
+  "identity": {
+    "environment": "candidate_full40_multiac_v2",
+    "target_bss": 0,
+    "purpose": "40-STA multi-AC high-concurrency DDQN training with reduced actions"
+  },
+  "backend": {
+    "flows": "results/raw/tgax_s3_inputs_20261021/subset7/candidate_full40_multiac_v2/flows.csv"
+  },
+  "action": {
+    "profiles": "configs/profiles.json",
+    "default_profile": 0,
+    "profile_branch_size": 17,
+    "default_fallback_index": 16,
+    "default_action": [16, 0, 0, 0, 0],
+    "alpha": [1, 2, 3],
+    "beta1": [1.6, 2.0],
+    "beta2": [2.0, 2.4, 2.8],
+    "gamma": [5, 6, 7],
+    "executed_legal_actions": 865,
+    "fallback_semantics": "profile index 16 maps to P0 plus native BEB; scalar indices are canonical zero"
+  },
+  "reward": {
+    "version": "tgax_v2_service_guard",
+    "ac_weights": [1.2, 1.2, 0.8, 0.8],
+    "qos_threshold_ms": [20.0, 50.0],
+    "service": 1.2,
+    "on_time_vo": 0.8,
+    "on_time_vi": 1.0,
+    "retransmission": 0.3,
+    "final_failure": 0.5,
+    "low_priority": 0.8,
+    "low_priority_service_floor": 0.05,
+    "action_change": 0.02,
+    "couple_timely_to_application_service": true,
+    "eps": 1e-9
+  },
+  "training": {
+    "q_lr": 0.0003,
+    "representation_lr": 0.0001,
+    "batch_size": 32,
+    "replay_capacity": 20000,
+    "warmup": 64,
+    "discount": 0.98,
+    "grad_clip": 10.0,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_steps": 300,
+    "target_update_mode": "soft",
+    "target_tau": 0.001,
+    "updates_per_stage": 20,
+    "stages": 20,
+    "episode_s": 20.0,
+    "threads": 2
+  },
+  "run": {
+    "mode": "tgax_full40_multiac_v2_training",
+    "seeds": [41, 42, 43],
+    "workers": 3,
+    "output": "results/raw"
+  },
+  "evaluation": {
+    "duration_s": 20.0,
+    "seeds": [44, 45],
+    "held_out_seeds": [46, 47],
+    "methods": ["default", "compressed_async_age"],
+    "every_training_steps": 200,
+    "checkpoint_metric": "gated_reward_mean"
+  }
+}

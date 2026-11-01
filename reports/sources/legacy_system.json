@@ -1,0 +1,16 @@
+{
+  "seed": 1,
+  "num_sta": 10,
+  "slot_time_us": 9,
+  "decision_period_slots": 11111,
+  "decision_period_ms": 100,
+  "episode_periods_train": 200,
+  "episode_periods_eval": 1000,
+  "warmup_ratio_eval": 0.1,
+  "single_collision_domain": true,
+  "hidden_nodes": false,
+  "rts_cts": false,
+  "max_retries": 7,
+  "queue_limits": {"VO": 100, "VI": 200, "BE": 500, "BK": 500}
+}
+

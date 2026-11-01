@@ -1,0 +1,8 @@
+{
+  "extends": "reward_v2.yaml",
+  "reward": {
+    "version": "v2_service",
+    "low_priority": 0.5,
+    "low_priority_service_floor": 0.9
+  }
+}

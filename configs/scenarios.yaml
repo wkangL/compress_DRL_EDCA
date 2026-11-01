@@ -1,0 +1,6 @@
+{
+  "S1_balanced_moderate": {"per_sta_mbps_by_ac":[0.0750811875,0.30032475,0.9760554375,0.150162375],"ul_fraction":0.6,"arrival":"poisson"},
+  "S2_realtime_stress": {"per_sta_mbps_by_ac":[0.55,1.25,0.40,0.08],"ul_fraction":0.5,"arrival":"poisson"},
+  "S3_BE_dominant_stress": {"per_sta_mbps_by_ac":[0.046413825,0.1856553,1.856553,0.232069125],"ul_fraction":0.7,"arrival":"poisson"},
+  "S4_overload": {"per_sta_mbps_by_ac":[0.45,1.00,1.20,0.25],"ul_fraction":0.5,"arrival":"poisson"}
+}

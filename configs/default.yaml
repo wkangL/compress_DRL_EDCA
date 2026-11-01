@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "backend": {"name": "ns3", "version": "3.44", "source": "vendor/ns-3.44", "binary": "vendor/ns-3.44/build/scratch/ns3.44-wifi-control-default.exe", "timeout_s": 120},
+  "network": {"num_sta": 10, "standard": "802.11a", "data_mode": "OfdmRate54Mbps", "control_mode": "OfdmRate6Mbps", "channel_width_mhz": 20, "ack": true, "rts_cts": false, "hidden_nodes": false, "phy_error_probability": 0.0, "ampdu": false, "block_ack": false, "retry_limit": 7, "enhanced_fraction": 1.0, "legacy_applies_profile": true, "tx_power_dbm": 16.0, "visible_loss_db": 50.0, "hidden_loss_db": 200.0},
+  "queues": {"limits_packets": [100, 200, 500, 500], "max_delay_s": 10.0},
+  "timing": {"sta_sample_s": 0.1, "history_s": 1.0, "ap_sample_s": 0.1, "decision_s": 1.0, "report_min_s": 0.1, "association_warmup_s": 1.0},
+  "action": {"profiles": "configs/profiles.json", "default_profile": 0, "alpha": [1,2,3], "beta1": [1.0,1.2,1.4,1.6,1.8,2.0], "beta2": [1.0,1.2,1.4,1.6,1.8,2.0,2.2,2.4,2.6,2.8,3.0], "gamma": [5,6,7]},
+  "state": {"features": ["queue_bytes", "access_delay_ms", "retry", "failed", "discarded", "delay_valid"], "global_features": ["busy_fraction", "ul_vo_goodput", "ul_vi_goodput", "ul_be_goodput", "ul_bk_goodput", "ap_vo_queue", "ap_vi_queue", "ap_be_queue", "ap_bk_queue", "associated_sta_count"], "delay_clip_ms": 10000.0, "age_scale_s": 1.0, "age_clip_s": 30.0, "associated_sta_scale": 64.0, "queue_byte_scale": 1000000.0},
+  "model": {"latent_dim": 8, "channels": 32, "kernel_size": 3, "dilations": [1,2,4], "aggregation_dim": 32, "backbone": [256,128], "aux_weight": 0.05, "aux_enabled": false, "collapse_variance": 0.00001},
+  "training": {"q_lr": 0.0003, "representation_lr": 0.0001, "batch_size": 256, "replay_capacity": 200000, "warmup": 5000, "traffic_warmup_s": 10.0, "discount": 0.98, "grad_clip": 10.0, "epsilon_start": 1.0, "epsilon_end": 0.05, "epsilon_steps": 100000, "target_update_mode": "soft", "target_update_steps": 500, "target_tau": 0.001, "episodes_per_stage": 4, "updates_per_stage": 200, "stages": 100, "episode_s": 30.0, "threads": 2},
+  "reward": {"ac_weights": [1.2,1.1,1.0,0.5], "qos_threshold_ms": [20.0,50.0], "throughput": 1.5, "collision": 0.5, "drop": 0.5, "vo_delay": 0.8, "vi_delay": 0.6, "unfairness": 0.2, "action_change": 0.02, "eps": 1e-9},
+  "traffic": {"scenarios": "configs/scenarios.yaml", "capacity_file": "results/summary/capacity.json", "payload": [{"type":"fixed","bytes":160},{"type":"clipped_lognormal","mean_bytes":1280,"sigma":0.35,"min_bytes":256,"max_bytes":1500},{"type":"fixed","bytes":1500},{"type":"fixed","bytes":1600}]},
+  "evaluation": {"traffic_warmup_s": 10.0, "duration_s": 60.0, "seeds": [101,102,103,104,105], "methods": ["default", "full_fresh", "raw_async", "compressed_fresh", "compressed_async_no_age", "compressed_async_age"]},
+  "run": {"mode": "full", "seeds": [1,2,3,4,5], "workers": 2, "output": "results/raw"},
+  "validation": {"duration_s": 8.0, "seeds": [11,22], "single_collision_max": 0.01, "beb_relative_tolerance": 0.05, "trace": true},
+  "ablations": {"history_s": [0.5,1.0,3.0], "latent_dim": [4,8,16], "decision_s": [1.0,5.0,10.0], "enhanced_fraction": [0,0.2,0.4,0.6,0.8,1.0], "age": ["none","mean","per_sta","full"], "random_phy_error_probability": 0.01}
+}

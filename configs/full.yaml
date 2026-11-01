@@ -1,0 +1,4 @@
+{
+  "extends": "default.yaml",
+  "training": {"epsilon_steps": 9600}
+}

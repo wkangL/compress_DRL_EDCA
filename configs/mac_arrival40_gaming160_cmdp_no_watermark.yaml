@@ -1,0 +1,21 @@
+{
+  "extends": "mac_arrival40_gaming160_cmdp_training.yaml",
+  "identity": {
+    "environment": "single_bss_mac_arrival40_gaming160_cmdp_no_watermark",
+    "purpose": "standards-neutral direct MAC arrival validation without custom admission watermark"
+  },
+  "backend": {
+    "direct_high_watermark": 0,
+    "direct_admission_poll_us": 500
+  },
+  "reward": {
+    "budgets": null,
+    "budget_status": "must be recalibrated after removing the legacy 64-packet admission watermark"
+  },
+  "run": {
+    "mode": "mac_arrival40_gaming160_cmdp_no_watermark_validation",
+    "seeds": [41],
+    "workers": 1,
+    "output": "results/raw"
+  }
+}

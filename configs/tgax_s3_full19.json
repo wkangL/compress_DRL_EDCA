@@ -1,0 +1,14 @@
+{
+  "extends": "tgax_s3_official.json",
+  "identity": {
+    "name": "TGax Scenario 3 full 19 co-channel BSS configuration",
+    "status": "retained optional complete configuration; no formal experiments scheduled",
+    "target_bss": 0,
+    "rl_enabled": false
+  },
+  "layout": {
+    "active_cochannel_bss": 19,
+    "selection": "all 19 cochannel BSSs in the reuse-3 performance layout",
+    "official_complete_scenario": true
+  }
+}

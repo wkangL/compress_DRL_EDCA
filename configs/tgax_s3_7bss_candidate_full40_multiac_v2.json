@@ -1,0 +1,18 @@
+{
+  "extends": "tgax_s3_7bss_candidate_full40_multiac_v1.json",
+  "identity": {
+    "name": "TGax-based subset7 40-STA multi-AC high-concurrency candidate v2",
+    "status": "sole corrected candidate after v1 Default-EDCA overload gate",
+    "target_bss": 0,
+    "rl_enabled": false,
+    "official_complete_scenario": false
+  },
+  "traffic": {
+    "bk_revision_reason": "v1 FTP-only BK produced zero successful BSS0 BK MPDUs in the 5 s gate",
+    "bk_persistent_gaming_generator": {"uplink": 8, "downlink": 8, "ac": "BK"},
+    "bk_retained_ftp": {"uplink": 2, "downlink": 2, "ac": "BK"},
+    "coverage": {"uplink_vo_or_vi_sta": 40, "be_sta": 32, "bk_sta": 16},
+    "generator_internals_changed": false,
+    "classification": "TGax-based research high-concurrency scenario; not official Scenario 3 traffic mix"
+  }
+}

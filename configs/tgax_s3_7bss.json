@@ -1,0 +1,14 @@
+{
+  "extends": "tgax_s3_official.json",
+  "identity": {
+    "name": "TGax-based Scenario 3 central 7-BSS formal research environment",
+    "status": "sole formal Default-EDCA calibration and future single-target-AP research environment",
+    "target_bss": 0,
+    "rl_enabled": false
+  },
+  "layout": {
+    "active_cochannel_bss": 7,
+    "selection": "center cochannel BSS plus its six nearest cochannel neighbors; official reuse geometry retained",
+    "official_complete_scenario": false
+  }
+}

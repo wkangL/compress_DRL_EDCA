@@ -1,0 +1,40 @@
+{
+  "extends": "tgax_ddqn_v1.yaml",
+  "identity": {
+    "purpose": "TGax persistent STEP 400-step single-seed experience-length validation"
+  },
+  "training": {
+    "q_lr": 0.0003,
+    "representation_lr": 0.0001,
+    "batch_size": 32,
+    "replay_capacity": 20000,
+    "warmup": 64,
+    "discount": 0.98,
+    "grad_clip": 10.0,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_steps": 300,
+    "target_update_mode": "soft",
+    "target_update_steps": 500,
+    "target_tau": 0.001,
+    "episodes_per_stage": 1,
+    "updates_per_stage": 20,
+    "stages": 20,
+    "episode_s": 20.0,
+    "threads": 2
+  },
+  "run": {
+    "mode": "tgax_extended_single_seed",
+    "seeds": [41],
+    "workers": 1,
+    "output": "results/raw"
+  },
+  "evaluation": {
+    "duration_s": 20.0,
+    "seeds": [43, 44],
+    "held_out_seeds": [45],
+    "methods": ["default", "compressed_async_age"],
+    "every_training_steps": 100,
+    "checkpoint_metric": "reward_mean"
+  }
+}

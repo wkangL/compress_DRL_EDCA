@@ -1,0 +1,6 @@
+{
+  "S1_balanced_moderate": {"rho":0.55,"ac_mix":[0.05,0.20,0.65,0.10],"ul_fraction":0.6,"arrival":"poisson"},
+  "S2_realtime_stress": {"rho":0.85,"ac_mix":[0.15,0.35,0.45,0.05],"ul_fraction":0.5,"arrival":"poisson"},
+  "S3_BE_dominant_stress": {"rho":0.85,"ac_mix":[0.02,0.08,0.80,0.10],"ul_fraction":0.7,"arrival":"poisson"},
+  "S4_overload": {"rho":1.20,"ac_mix":[0.08,0.22,0.60,0.10],"ul_fraction":0.5,"arrival":"poisson"}
+}

@@ -1,0 +1,28 @@
+{
+  "source": {
+    "document": "IEEE 802.11-14/0571r12 TGax Evaluation Methodology",
+    "local_copy": "reports/references/11-14-0571-12-00ax-evaluation-methodology.docx",
+    "scope": "reference parameters; these are not silently substituted into the calibrated Poisson scenarios"
+  },
+  "voip_two_state": {
+    "status": "reference_not_yet_backend_default",
+    "active_payload_bytes": 33,
+    "silence_payload_bytes": 7,
+    "active_interval_ms": 20,
+    "silence_interval_ms": 160,
+    "mean_state_duration_s": 1.25,
+    "transition_probability_per_packet": 0.016,
+    "downlink_jitter_distribution": "Laplacian",
+    "downlink_jitter_beta_ms": 5.11
+  },
+  "buffered_video": {
+    "status": "reference_not_yet_backend_default",
+    "nominal_bitrate_mbps": 2.0,
+    "frame_size_distribution": "Weibull",
+    "weibull_lambda_bytes": 6950,
+    "weibull_shape": 0.8099,
+    "tcp_segment_bytes": 1500,
+    "network_latency_distribution": "Gamma",
+    "network_latency_mean_ms": 14.834
+  }
+}

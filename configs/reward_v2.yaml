@@ -1,0 +1,15 @@
+{
+  "extends": "default_v2.yaml",
+  "reward": {
+    "version": "v2",
+    "throughput": 1.0,
+    "on_time_vo": 0.8,
+    "on_time_vi": 1.0,
+    "collision": 0.3,
+    "drop": 0.3,
+    "unfairness": 0.2,
+    "action_change": 0.02,
+    "low_priority": 0.0,
+    "low_priority_service_floor": 0.0
+  }
+}

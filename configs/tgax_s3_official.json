@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "name": "TGax Scenario 3 - Indoor Small BSSs",
+    "status": "official-derived environment under implementation",
+    "target_bss": 0,
+    "rl_enabled": false
+  },
+  "layout": {
+    "cell_radius_m": 10.0,
+    "base_inter_bss_distance_m": 17.32050807568877,
+    "reuse_factor": 3,
+    "cochannel_inter_bss_distance_m": 30.0,
+    "full_active_cochannel_bss": 19,
+    "sta_per_bss": 40,
+    "ap_height_m": 3.0,
+    "sta_height_m": 1.5,
+    "association": {"strongest": 100, "second": 0, "third": 0},
+    "wrap_around": false
+  },
+  "phy": {
+    "standard": "802.11ax",
+    "band_ghz": 5,
+    "channel_width_mhz": 80,
+    "reuse_class_channel_number": 42,
+    "primary_20mhz_channel_number": 36,
+    "data_mode": "HeMcs7",
+    "control_mode": "OfdmRate6Mbps",
+    "guard_interval_ns": 800,
+    "ap_antennas": 2,
+    "ap_tx_spatial_streams": 1,
+    "ap_rx_spatial_streams": 2,
+    "sta_antennas": 1,
+    "sta_tx_spatial_streams": 1,
+    "sta_rx_spatial_streams": 1,
+    "ap_tx_power_per_antenna_dbm": 20.0,
+    "ap_tx_power_ns3_total_dbm": 23.010299956639813,
+    "sta_tx_power_dbm": 15.0,
+    "ap_gain_dbi": 0.0,
+    "sta_gain_dbi": -2.0,
+    "noise_figure_db": 7.0,
+    "rx_sensitivity_dbm": -101.0,
+    "cca_ed_threshold_dbm": -62.0,
+    "cca_wifi_threshold_dbm": -82.0,
+    "ul_ofdma": false,
+    "dl_ofdma": false,
+    "mu_mimo": false
+  },
+  "channel": {
+    "model": "TGn/TGac model-D large-scale path loss",
+    "pathloss_formula": "40.05 + 20*log10(fc_GHz/2.4) + 20*log10(min(d_m,10)) + I(d_m>10)*35*log10(d_m/10)",
+    "minimum_3d_distance_m": 1.0,
+    "shadowing": "independent link-static Gaussian in dB",
+    "shadowing_std_db": 5.0,
+    "frequency_selective_model_d": "not available in ns-3.44; tracked as a declared deviation"
+  },
+  "mac": {
+    "edca": "ns-3 standard default EDCA",
+      "ssid": "tgax-s3 (common ESS; STA selects the strongest observed BSSID)",
+    "max_ampdu_bytes_by_ac": {"VO": 65535, "VI": 65535, "BE": 65535, "BK": 65535},
+    "max_amsdu_bytes_by_ac": {"VO": 0, "VI": 0, "BE": 0, "BK": 0},
+    "block_ack_buffer_mpdu": 64,
+    "block_ack": "immediate",
+    "frame_retry_limit": 10,
+    "rts_cts": false,
+    "queue_limit_packets": 500,
+    "queue_max_delay_ms": 500,
+    "beacon_interval_tu": 100,
+      "beacon_start_jitter": "ns-3 default independent initial jitter; TGax does not specify synchronized starts",
+    "beacon_size_official_octets": 280
+  },
+  "traffic_services_per_bss": {
+    "D1": {"model": "BV6", "source": "AP", "sink": "STA", "count": 12, "transport": "TCP", "ac": "VI"},
+    "D2": {"model": "BV3", "source": "AP", "sink": "STA", "count": 8, "transport": "TCP", "ac": "VI"},
+    "D3": {"model": "FTP", "source": "AP", "sink": "STA", "count": 4, "transport": "TCP", "ac": "BE"},
+    "D4": {"model": "HTTP", "source": "AP", "sink": "STA", "count": 12, "transport": "TCP", "ac": "BE"},
+    "D5": {"model": "GMG", "source": "AP", "sink": "STA", "count": 16, "transport": "UDP", "ac": "VI"},
+    "D6": {"model": "VOIP", "source": "AP_STA", "sink": "STA_AP", "count": 12, "transport": "UDP", "ac": "VO"},
+    "D7": {"model": "BEACON", "source": "AP", "sink": "BROADCAST", "count": 1, "transport": "MGMT", "ac": "VI"},
+    "U1": {"model": "BV3", "source": "STA", "sink": "AP", "count": 4, "transport": "TCP", "ac": "VI"},
+    "U2": {"model": "FTP", "source": "STA", "sink": "AP", "count": 4, "transport": "TCP", "ac": "BE"},
+    "U3": {"model": "GMG", "source": "STA", "sink": "AP", "count": 16, "transport": "UDP", "ac": "VI"},
+    "U4": {"model": "PROBE_REQUEST", "source": "UNASSOCIATED_STA", "sink": "BROADCAST", "count": 0, "transport": "MGMT", "ac": "VI", "official_rate": "TBD"}
+  },
+  "sources": {
+    "scenario": "IEEE 802.11-14/0980r16, Scenario 3, Figures 6-8 and Scenario 3 parameter/traffic tables",
+    "traffic": "IEEE 802.11-14/0571r12, Appendix 2",
+    "channel": "IEEE 802.11-14/0882r4, Indoor spatial channel models and Table III"
+  }
+}

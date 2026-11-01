@@ -1,0 +1,38 @@
+{
+  "S1_balanced_moderate": {
+    "per_sta_mbps_by_ac": [0.0750811875, 0.30032475, 0.9760554375, 0.150162375],
+    "ul_fraction": 0.6,
+    "arrival": "poisson",
+    "class": "stationary_reference",
+    "basis": "preserved serviceable reference from the original study"
+  },
+  "S2_realtime_stress": {
+    "per_sta_mbps_by_ac": [0.34375, 0.78125, 0.25, 0.05],
+    "ul_fraction": 0.5,
+    "arrival": "poisson",
+    "class": "realtime_transition",
+    "basis": "0.625 times the preserved S2 composition; selected by schema-3 load scan"
+  },
+  "S3_BE_dominant_stress": {
+    "per_sta_mbps_by_ac": [0.046413825, 0.1856553, 1.856553, 0.232069125],
+    "ul_fraction": 0.7,
+    "arrival": "poisson",
+    "class": "be_dominant_serviceable",
+    "basis": "preserved BE-dominant reference; its knee begins above the original load"
+  },
+  "S4_overload": {
+    "per_sta_mbps_by_ac": [0.28125, 0.625, 0.75, 0.15625],
+    "ul_fraction": 0.5,
+    "arrival": "poisson",
+    "class": "mixed_high_load",
+    "basis": "0.625 times the preserved S4 composition; selected by schema-3 load scan"
+  },
+  "S5_dynamic_bursty": {
+    "per_sta_mbps_by_ac": [0.34375, 0.78125, 0.25, 0.05],
+    "ul_fraction": 0.5,
+    "arrival": "poisson_two_state_rate",
+    "load_pattern": {"type": "two_state", "period_s": 5.0, "low_scale": 0.5, "high_scale": 1.5, "stagger_by_sta": true},
+    "class": "dynamic_bursty",
+    "basis": "same time-average rate and AC mix as S2 v2; deterministic per-STA phase offsets"
+  }
+}

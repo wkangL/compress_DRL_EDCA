@@ -1,0 +1,30 @@
+{
+  "extends": "tgax_s3_7bss.json",
+  "identity": {
+    "name": "TGax-based subset7 mix_min1 FTP-to-BK candidate",
+    "status": "sole candidate for next-stage review",
+    "target_bss": 0,
+    "rl_enabled": false
+  },
+  "traffic": {
+    "base_variant": "mix_min1",
+    "service_counts_per_bss": {
+      "D1": 1,
+      "D2": 1,
+      "D3": 1,
+      "D4": 1,
+      "D5": 1,
+      "D6": 1,
+      "U1": 1,
+      "U2": 1,
+      "U3": 1
+    },
+    "ac_mapping": {
+      "VOIP": "VO",
+      "BV3_BV6_GAMING": "VI",
+      "HTTP": "BE",
+      "FTP": "BK"
+    },
+    "only_change_from_mix_min1": "D3 and U2 application TOS are mapped from BE to BK; generator and TCP behavior are unchanged"
+  }
+}

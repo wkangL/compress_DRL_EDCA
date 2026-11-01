@@ -1,0 +1,172 @@
+Wireless LANs
+[TABLE]
+IEEE 802.11ax Channel Model Document
+The purpose of this document is to record progresses and consensus related to channel model.
+Date:  2014-09-16
+Contributor(s):
+Name	Affiliation	Address	Phone	email
+Jianhan Liu	Mediatek	2860 Junction Ave., San Jose, CA, 95134, USA		Jianhan.liu@mediatek.com
+Ron Porat	Broadcom			
+Nihar Jindal	Broadcom			
+Vinko Erceg	Broadcom			
+Shahrnaz Azizi	Intel			
+Sameer Vermani	Qualcomm			
+Bin Tian	Qualcomm			
+Wookbong Lee	LGE			
+Hongyuan Zhang	Marvell			
+Yakun Sun	Marvell			
+Jiayin Zhang	Huawei			
+Roy Luo	Huawei			
+Kaushik Josiam	Samsung			
+Fei Tong	Samsung			
+Bo Sun	ZTE			
+Leif Wilhelmsson R	Ericsson			
+Sayantan Choudhury	Nokia			
+Klaus Doppler	Nokia			
+Pengfei Xia	Interdigital			
+[/TABLE]
+Abstract
+This document provides the channel model document to be used for IEEE802.11ax task group.
+Revision History
+[TABLE]
+Date	Version	Description of changes
+07/24/13	0.1	After July 2013 meeting in Geneva, group decides to start documenting the contributions and discussions.
+10/10/2013	0.2	Including the progress and consensus reached in IEEE 802.11 September meeting in Nanjing, 2013
+06/10/2014	0.3	Including the progress and consensus reached in IEEE 802.11 March and May meeting in 2014.
+07/01/2014	0.4	Correct a few typos and include the Doppler.
+07/10/2014	0.5	Modified the outdoor-to-indoor path loss and add the shadow fading parameters.
+07/14/2014	0.6	Change the cluster in Doppler mode to TBD value
+07/16/2014	0.7	Add LOS probability and some editorial changes
+09/16/2014	0.8	Add the Doppler effect for fast moving objects
+[/TABLE]
+Introduction
+TGn and Tgac task group have developed a comprehensive MIMO broadband channel model, with support for up to 160 MHz channelization and up to 8 antennas [1-2]. IEEE 802.11ax task group targets to improve MAC and PHY efficiency in dense networks for both indoor and outdoor scenarios.
+This document describes the additional channel models for link level and system level performance evaluations for IEEE 802.11ax.
+Spatial Channel Models (SCM)
+Indoor spatial channel models
+TGn and TGac spatial channel models are adopted as IEEE 802.11ax indoor channel models [1-2] for link level and system level performance evaluation for indoor scenarios.
+The delay spreads and cluster parameters of indoor TGn and TGac spatial channel models are listed in the Table I.
+[TABLE]
+Model	rms Delay Spread(ns)	Number Of Clusters	Taps/Cluster	Propagation Scenario	Usage Model
+A	0	1	1	Flat fading	Gaussian Channel-like
+B	15	2	5,7	Indoor Residential	Intra Room, Room to Room
+C	30	2	10,8	Indoor Residential/Small Office	Enclosed Offices Meeting, Conference or Class rooms
+D	50	3	16,7,4	Indoor Typical Office	Offices – cubes farms, open areas and large classrooms
+E	100	4	15,12,7,4	Indoor Large Office/Warehouse	Indoor Hotspots with large rooms
+F	150	6	15,12,7,3,2,2	Large Space Indoor (pseudo-outdoor).	Large Indoor Hotspot – Airport
+[/TABLE]
+Table I. Delay spreads and cluster parameters of indoor TGn and TGac channel models
+Outdoor spatial channel models
+IEEE 802.11ax targets to enhance the average throughput per station in both indoor and outdoor operations. Compared to indoor channels, outdoor channels typically experience larger delay spreads and more time variations. Outdoor spatial channels models in 2.4GHz and 5GHz therefore needed for link level and system level performance evaluation in IEEE 802.11ax.
+UMi and UMa channel models
+3GPP/3GPP2 had done a lot of work on outdoor channel measurements and modelling.  Two types of channel models, namely WINNER II and ITU-R respectively, are considered and described in [3-4]. The basic features of ITU-R and WINNER II spatial channel models are listed as follows.
+ITU-R channel models are derived from WINNER II channel models;
+ITU-R and WINNER II channel models are quite similar [7];
+ITU-R channel models are applicable for up to 100MHz signal BW, 2-6GHz centre frequency and outdoor and indoor environments.
+Both spatial channel models are defined for Line-of-Sight (LOS) and Non-Line-of-Sight (NLOS) with a distance dependent LOS probability.
+Based on range analysis, definition of environment and deployments, and wide HEW study group discussions [7-12], IEEE 802.11ax decides to use ITU-R outdoor spatial channel models as the baseline of outdoor spatial channel models for link level and system level performance evaluation. Both ITU-R Urban Micro (UMi) channel models and ITU-R Urban Macro (UMa) channel models can be used in the IEEE 802.11ax link level and system level performance evaluation for outdoor operations.
+In UMi scenarios, the height of both the antenna at the base station and that at the mobile station are assumed to be well below the tops of surrounding buildings. UMi scenarios include outdoor scenarios [3] with the coverage area that is reachable with current typical transmit power of WiFi devices. Therefore UMi spatial channel models are chosen as the first choice of outdoor channel models for IEEE 802.11ax link level and system level performance evaluation. In typical UMa scenarios, the mobile station is located outdoors at street level and the fixed base station clearly above the surrounding building heights [3]. UMa spatial channel models therefore serve as complementary outdoor channel models.
+The outdoor channel models for AP to STA, STAs to AP, and STA to STA are implemented by choosing different height of antennas [12].
+Channel model parameters for UMi and UMa channel models are listed in table A1-7 in [3]. The brief summary of delay spread of UMi and UMa channels models is listed in Table II.
+[TABLE]
+Channel Model	Scenario	DS (ns)
+UMi	LOS	65
+	NLOS	129
+	O-to-I	240
+UMa	LOS	93
+	NLOS	363
+[/TABLE]
+Table II. Brief Summary of delay spreads for UMi and UMa channel models
+UMi and UMa channel generation code
+Chapter 9 in [3] has the detailed description of UMi and UMa channel models. The generation code for UMi and UMa channel models can be found in the attached document or via the access link provided in the Appendix A.
+160MHz bandwidth support
+To expand the ITU-R channel models to support 160MHz bandwidth, one straightforward method is to down-scale the channel profiles of 5ns sampling rate (can be generated using code in Appendix A) to 6.25ns sampling rate according to the following rule as described in [4].
+Move the original samples to the nearest location in the down-sampled delay grid.
+In some cases there are two such locations. Then the tap should be placed in the one that has the smaller delay.
+To generate the ITU-R channel models with a higher sampling rate than 160MHz, say, 320MHz or 640MHz, a method with feasible computational complexity is to interpolate the channel profile of 5ns sampling to the desired frequency. According to [4], a practical solution is e.g. to generate channel samples with sample density (over-sampling factor) two, interpolate them accurately to sample density 64 and to apply zero order hold interpolation to the system sampling frequency.
+Doppler
+Even though IEEE 802.11ax outdoor operation focus on pedestrian mobility, reflections from fast moving objections, such as cars, can cause higher Doppler. Similar to [16], the following two Doppler modes should be supported in the outdoor spatial channel models.
+Speed up to 3 kilometre per hour (kmph) for all clusters for UMi and UMa models;
+The 2nd and the 3rd clusters of UMi and UMa models assigned a speed of 60 kmph and the rest of the clusters assigned 3 kmph;
+Path Loss model
+IEEE 802.11ax simulation scenarios [5] and evaluation methodologies [6] need to model path loss for both outdoor and indoor operations. Different path loss models shall be used for different simulation scenarios.
+Indoor path loss for simulation scenarios #1, #2 and #3 in [5]
+Tgn path loss models [1] are adopted as the indoor path loss model for performance evaluation of IEEE 802.11ax simulation scenarios #1, #2 and #3 [13]. Extra floor penetration   loss PELfloor and wall penetration loss PELwall shall be added to this path loss. The overall indoor path loss is
+PLoverall= PLindoor(d)+ PELfloor+PELwall
+TGn path loss model consists of the free space loss LFS (slope of 2) up to a breakpoint distance and slope of 3.5 after the breakpoint distance. For each of the models different break-point distance dBP was chosen
+PLindoord=LFSd,                                            if d≤ dBP
+PLindoord=LFSd+35log10ddBP,    if d≥ dBP
+where d is the transmit-receive separation distance in m. The path loss model parameters are summarized in Table III. In the table, the standard deviations of log-normal (Gaussian in dB) shadow fading are also included. The values were found to be in the 3-14 dB range.
+[TABLE]
+Channel Model	dBP (m)	Slope before dBP	Slope after dBP	Shadow fading std. dev. (dB)before dBP(LOS)	Shadow fading std. dev. (dB)after dBP(NLOS)
+B	5	2	3.5	3	4
+D	10	2	3.5	3	5
+[/TABLE]
+Table III: Path loss model parameters
+IEEE 802.11ax uses the TGn channel B path loss model for performance evaluation of simulation scenario #1 with extra indoor wall and floor penetration loss.
+IEEE 802.11ax uses the TGn channel D path loss model for performance evaluation of simulation scenario #2 with extra indoor wall and floor penetration loss.
+IEEE 802.11ax uses the TGn channel D path loss model for performance evaluation of simulation scenario #3.
+Indoor floor and wall penetration loss
+Indoor floor penetration loss and the internal wall penetration loss are as follows [14]
+PELfloor=18.3n((n+2)/(n+1)-0.46) ,
+PELwall= m*Liw ,
+where n and m are the number of floors and walls penetrated respectively; Liw is the penetration loss for a single wall.  Liw is set as 5dB for simulation senario #1 and as 7dB for simulation senario #2 reseptively.
+Outdoor path loss for simulation scenario #4 and #4a in [5]
+The path loss models for IEEE 802.11ax outdoor scenarios are based on UMi path loss model shown in Table A1-2 in [3].
+For LOS link, the path loss model is
+PLoutdoor-LOSd=22.0log10d+28+20log10fc,               if 10m≤d<dBP
+PLoutdoor-LOSd=40log10d+7.8-18log10hAP-1.0-18log10hSTA-1.0+20log10fc,    if  dBP≤d<5000m
+where carrier frequency fc is given in GHz and distance d is given in meter. hAP stands for the actual antenna height of an access point (AP) and hSTA stands for the actual antenna height of a station (STA), both are given in meter. Break-point distance dBP was defined as
+dBP=4hAP-1.0hSTA-1.0fc×109c
+where c=3×108(m/s) is the propagation velocity in free space.
+The height of AP hAP and the height of station hSTA are proposed in [15] (see table IV).
+[TABLE]
+Scenarios	Height (meter)	Height (meter)
+AP↔STA	hAP=10	hSTA=1.5
+AP↔AP	hAP=10	hAP=10
+STA↔STA	hSTA=1.5	hSTA=1.5
+[/TABLE]
+Table IV: Antenna heights for different scenarios
+For NLOS link, UMi NLOS path loss uses the hexagonal cell layout formula [3]. The formula is
+PLoutdoor-NLOSd=36.7log10d+22.7+26log10fc,         10m≤d<2000m
+where carrier frequency fc is again given in GHz and distance d is given in meter.
+The LOS probability is given in Table V according to Table A1-3 in [3]. Note that probabilities are used only for system level simulations.
+[TABLE]
+Scenarios	LOS probability as a function of distance, d (m)
+UMi	PLOS=min18d,1×1-e-d/36+e-d/36(for outdoor users only)
+UMa	PLOS=min18d,1×1-e-d/63+e-d/63
+[/TABLE]
+Table V: LOS probabilities
+Path loss including outdoor-to-Indoor building penetration loss
+For an outdoor-to-indoor scenario, building wall penetration loss and indoor path loss need to be added. IEEE 802.11ax only considers the outdoor-to-indoor loss in NLOS scenarios.
+PLoutdoor-to-Indoor=PLoutdoor-NLOSdout+din+20+0.5din,
+where dout is the outdoor distance and din is the indoor distance. 20 is the building penetration loss in dB.
+Shadow fading parameters
+IEEE 802.11ax modelling the shadow fading by a log normal distribution with standard deviation as in [3]. The shadow fading standard deviations are listed in table VI.
+[TABLE]
+Scenarios	Shadow Fading Std (dB)(LOS)	Shadow Fading Std (dB)(NLOS)	Shadow Fading Std (dB)(Outdoor-to-Indoor in NLOS)
+AP↔STA	3	4	7
+AP↔AP	3	4	7
+STA↔STA	3	4	7
+[/TABLE]
+Table VI: Shadow fading standard deviations for outdoor path losses.
+Appendix A: Software Implementation of IMT.EVAL Channel Model
+Access link for the code:
+http://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0CDIQFjAA&url=http%3A%2F%2Fwww.itu.int%2Fdms_pub%2Fitu-r%2Foth%2F0A%2F06%2FR0A060000220001MSWE.doc&ei=KMhzU8e_L5L38QWDu4DAAw&usg=AFQjCNHT9XTloAU1bAvHWsLlGOKZtwKTyg&sig2=BIfQP4Bj_BA-y1J8cAcK0Q
+References
+“TGn Channel Models”, IEEE 802.11-03/940r4, Vinko Erceg, etc.
+“TGac Channel Model Addendum”, IEEE 802.11-09/0308r12, Greg Breit, etc.
+Report ITU-R M.2135-1, (12/2009),  Guidelines for evaluation of radio interface technologies for IMT-Advanced
+IST-4-027756 WINNER II,  D1.1.2 V1.1, WINNER II Channel Models
+“TGax Simulation Scenarios”, IEEE 802.11-14/0621r3, Simone Merlin, etc.
+“11ax Evaluation Methodology”, IEEE 802.11-14/0571r2, Ron Porat, etc
+“HEW SG PHY Considerations for Outdoor Environment”, IEEE 802.11-13/0536, LGE, Wookbong Lee, etc.
+“Enhanced Channel Model for HEW”, IEEE 802.11-13/0858, Shahrnaz Azizi, etc.
+“Update on HEW Channel Model”, IEEE 802. 11-13/1146r0, Shahrnaz Azizi, etc.
+“HEW Outdoor Channel Model Discussions”, IEEE 802. 11-13/1125r3, Hongyuan Zhang, etc.
+“Summary on HEW Channel Models”, IEEE 802. 11-13/1135r4, Jianhan Liu, etc.
+“Outdoor Channel Models for System Level Simulations”, IEEE 802. 11-14/0627, Kaushik Josiam, etc.
+“Path Loss Model for Scenario 1”, IEEE 802.11-14/0577r1, Nihar Jindal, etc.
+TR 36.814, “Technical Specification Group Radio Access Network; Evolved Universal Terrestrial Radio Access (E-UTRA); further advancements for E-UTRA physical layer aspects (Release 9)”, v9.0.0, March 2010.
+“Consensus on Outdoor Channel Models for System Level Simulations” , IEEE 802.11-14/0695r1, Kaushik Josiam, etc.
+“TGah Channel Model”, IEEE 802.11-11/0968r3, Ron Porat, etc.

@@ -1,0 +1,9 @@
+{
+  "every_stages": 4,
+  "duration_s": 15.0,
+  "evaluation_seeds": [301,302],
+  "evaluate_resume_boundary": true,
+  "evaluate_first_update": true,
+  "evaluate_first_target_sync": true,
+  "final_test": false
+}

@@ -1,0 +1,4 @@
+{
+  "extends": "diagnostic_target_base.yaml",
+  "training": {"target_update_mode": "soft", "target_tau": 0.005}
+}

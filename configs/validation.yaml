@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {"name":"single_light","num_sta":1,"offered_mbps":1,"ac_mix":[0,0,1,0]},
+    {"name":"contention_2","num_sta":2,"offered_mbps":4,"ac_mix":[0,0,1,0]},
+    {"name":"contention_5","num_sta":5,"offered_mbps":10,"ac_mix":[0,0,1,0]},
+    {"name":"contention_10","num_sta":10,"offered_mbps":20,"ac_mix":[0,0,1,0]},
+    {"name":"ac_priority","num_sta":10,"offered_mbps":25,"ac_mix":[0.25,0.25,0.25,0.25]},
+    {"name":"cw_small","num_sta":10,"offered_mbps":15,"ac_mix":[0,0,1,0]},
+    {"name":"cw_large","num_sta":10,"offered_mbps":15,"ac_mix":[0,0,1,0],"action":{"profile":15}},
+    {"name":"rts_visible","num_sta":2,"offered_mbps":2,"ac_mix":[0,0,1,0],"rts_cts":true},
+    {"name":"hidden_off","num_sta":10,"offered_mbps":20,"ac_mix":[0,0,1,0]},
+    {"name":"hidden_on","num_sta":10,"offered_mbps":20,"ac_mix":[0,0,1,0],"hidden_nodes":true},
+    {"name":"hidden_rts","num_sta":10,"offered_mbps":20,"ac_mix":[0,0,1,0],"hidden_nodes":true,"rts_cts":true},
+    {"name":"beb_custom","num_sta":10,"offered_mbps":20,"ac_mix":[0,0,1,0],"action":{"custom_growth":true}}
+  ]
+}

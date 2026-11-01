@@ -1,0 +1,11 @@
+{
+  "extends": "tgax_ddqn_full40_multiac_v5.yaml",
+  "identity": {
+    "environment": "candidate_full40_multiac_v6",
+    "target_bss": 0,
+    "purpose": "sole formal 40-STA multi-AC high-concurrency DDQN environment"
+  },
+  "backend": {
+    "flows": "results/raw/tgax_s3_inputs_20261021/subset7/candidate_full40_multiac_v6/flows.csv"
+  }
+}

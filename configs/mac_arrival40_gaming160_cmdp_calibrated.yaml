@@ -1,0 +1,12 @@
+{
+  "extends": "mac_arrival40_gaming160_cmdp_training.yaml",
+  "identity": {
+    "purpose": "calibrated single-seed constrained TCN-DDQN training"
+  },
+  "reward": {
+    "low_priority_min_satisfaction": [0.15257310811250882, 0.07152512817105158],
+    "budgets": [0.3318127979627491, 0.6579252728633478, 0.3582952242527778, 1.0],
+    "budget_status": "frozen from Default seeds 41/42/43, 20 seconds each",
+    "budget_source": "results/raw/mac_arrival40_gaming160_cmdp_default_calibration_20261029/calibration.json"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "extends": "default_v2.yaml",
+  "reward": {"version": "v1"}
+}

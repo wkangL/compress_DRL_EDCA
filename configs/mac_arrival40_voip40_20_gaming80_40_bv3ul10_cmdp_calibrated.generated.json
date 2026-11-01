@@ -1,0 +1,20 @@
+{
+  "extends": "mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp.yaml",
+  "identity": {
+    "purpose": "calibrated three-seed 600-step final-checkpoint-only CMDP training"
+  },
+  "reward": {
+    "low_priority_min_satisfaction": [
+      6.119593741537685e-06,
+      0.0
+    ],
+    "budgets": [
+      0.6184278362800222,
+      0.7936666613323959,
+      0.5752669682938326,
+      1.0
+    ],
+    "budget_status": "frozen from independent Default one-second STEP calibration",
+    "budget_source": "results/raw/mac_arrival40_voip40_20_gaming80_40_bv3ul10_default_calibration_20261030/calibration.json"
+  }
+}
