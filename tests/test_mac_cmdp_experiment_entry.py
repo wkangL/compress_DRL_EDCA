@@ -54,3 +54,17 @@ def test_prepare_emits_only_manual_two_cost_fields(tmp_path):
     assert "minimum_jain" not in reward
     assert "minimum_satisfaction" not in reward
 
+
+def test_immediate_mac_admission_does_not_schedule_polling():
+    source = (ROOT / "ns3_ext/tgax-control.cc").read_text(encoding="utf-8")
+    start = source.index("void StartApplication() override", source.index("class MacArrivalApplication"))
+    stop = source.index("void StopApplication() override", start)
+    startup = source[start:stop]
+    assert "if(m_highWatermark>0)" in startup
+    assert startup.index("if(m_highWatermark>0)") < startup.index("&MacArrivalApplication::AdmissionTick")
+
+    tick_start = source.index("void AdmissionTick()", stop)
+    tick_end = source.index("void VoipTick()", tick_start)
+    tick = source[tick_start:tick_end]
+    assert "if(!m_running || m_highWatermark==0) return;" in tick
+

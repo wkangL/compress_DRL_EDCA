@@ -857,8 +857,11 @@ class MacArrivalApplication : public Application
         m_running=true;
         m_modelEvent=Simulator::Schedule(MilliSeconds(m_uniform->GetValue(0.0,20.0)),
                                          &MacArrivalApplication::StartModel,this);
-        m_admissionEvent=Simulator::Schedule(MicroSeconds(m_pollUniform->GetValue(1.0,m_admissionPollUs)),
-                                             &MacArrivalApplication::AdmissionTick,this);
+        if(m_highWatermark>0)
+        {
+            m_admissionEvent=Simulator::Schedule(MicroSeconds(m_pollUniform->GetValue(1.0,m_admissionPollUs)),
+                                                 &MacArrivalApplication::AdmissionTick,this);
+        }
     }
     void StopApplication() override
     {
@@ -927,7 +930,10 @@ class MacArrivalApplication : public Application
     }
     void AdmissionTick()
     {
-        if(!m_running) return;
+        // A zero watermark is the standards-neutral immediate-admission mode:
+        // Generate() submits every arrival directly to the native WifiMacQueue,
+        // so polling m_pending would be a permanent no-op event storm.
+        if(!m_running || m_highWatermark==0) return;
         const auto queue=m_device->GetMac()->GetQosTxop(Ac())->GetWifiMacQueue();
         if(!m_pending.empty() && queue->GetNPackets()<m_highWatermark)
         {
