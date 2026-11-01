@@ -81,6 +81,20 @@ class RlTests(unittest.TestCase):
         self.assertEqual(stats["truncated_fraction"],1.)
         self.assertTrue(all(p.grad is None for p in target.parameters()))
 
+    def test_two_cost_replay_recombines_and_backpropagates(self) -> None:
+        torch.set_num_threads(2); c=load_config(ROOT/"configs/quick.yaml")
+        scaler=StateScaler(100); scaler.fit(np.stack([np.zeros((10,6)),np.ones((10,6))]))
+        state=dict(history=np.ones((2,4,10,6),dtype=np.float32),age=np.zeros(2),valid=np.ones(2),
+                   global_stats=np.zeros(GLOBAL_DIM),action=np.zeros(20))
+        transition=Transition(state,np.array([0,0,5,5,2]),99.,deepcopy(state),True,0,
+                              utility=.8,costs=np.asarray([.5,.7]))
+        model=ControlNetwork(c,"compressed_async_age",GLOBAL_DIM); target=freeze_target(deepcopy(model))
+        opt=torch.optim.AdamW(model.parameters(),lr=.001)
+        stats=td_update(model,target,[transition],scaler,opt,c["training"],
+                        {"budgets":np.asarray([.4,.9]),"multipliers":np.asarray([.1,.1])})
+        self.assertTrue(np.isfinite(stats["td_loss"]))
+        self.assertGreater(stats["grad_norm"],0.)
+
     def test_hard_and_soft_target_updates(self) -> None:
         c=load_config(ROOT/"configs/quick.yaml")["training"]
         model=ControlNetwork(load_config(ROOT/"configs/quick.yaml"),"compressed_async_age",GLOBAL_DIM)

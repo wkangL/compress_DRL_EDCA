@@ -252,11 +252,12 @@ def main() -> None:
     digest=source_hash(config_path)
     tc = config["training"]
     cmdp_version=config["reward"].get("version")
-    is_cmdp=cmdp_version in ("tgax_cmdp_v1", "tgax_cmdp_v2")
+    is_cmdp=cmdp_version in ("tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
+                            "tgax_cmdp_two_cost_v4")
     lagrange=None
     if is_cmdp:
         if config["reward"].get("budgets") is None:
-            raise ValueError("CMDP training requires four explicitly configured cost budgets")
+            raise ValueError("CMDP training requires explicitly configured cost budgets")
         reward=config["reward"]
         lagrange=LagrangeController(np.asarray(reward["budgets"],dtype=float),
             np.asarray(reward["multiplier_initial"],dtype=float),reward["multiplier_learning_rate"],
@@ -338,7 +339,7 @@ def main() -> None:
                                          tc["episode_s"], version)
             if is_cmdp: env.lagrange=lagrange
             obs = env.reset_observation(); inference = InferenceCache(model, scaler)
-            episode_costs=[]; episode_cost_valid=[]; episode_rewards=[]
+            episode_costs=[]; episode_cost_valid=[]; episode_rewards=[]; episode_utilities=[]
             try:
                 for local in range(steps_per_episode):
                     epsilon = tc["epsilon_end"] + (tc["epsilon_start"] - tc["epsilon_end"]) * max(0, 1 - steps / tc["epsilon_steps"])
@@ -352,7 +353,9 @@ def main() -> None:
                                           costs=(np.asarray(metrics["cmdp_costs"],dtype=float) if is_cmdp else None)))
                     if is_cmdp:
                         episode_costs.append(np.asarray(metrics["cmdp_costs"],dtype=float))
-                        if cmdp_version == "tgax_cmdp_v2":
+                        episode_utilities.append(float(metrics["cmdp_utility"]))
+                        if cmdp_version in ("tgax_cmdp_v2", "tgax_cmdp_directional_v3",
+                                            "tgax_cmdp_two_cost_v4"):
                             episode_cost_valid.append(np.asarray(metrics["cmdp_cost_valid"], dtype=bool))
                         else:
                             episode_cost_valid.append(np.asarray([
@@ -371,7 +374,7 @@ def main() -> None:
                 costs_array=np.asarray(episode_costs); valid_array=np.asarray(episode_cost_valid)
                 valid_mask=valid_array.any(axis=0)
                 episode_mean=np.asarray([costs_array[valid_array[:,i],i].mean()
-                    if valid_mask[i] else lagrange.budgets[i] for i in range(4)])
+                    if valid_mask[i] else lagrange.budgets[i] for i in range(lagrange.budgets.size)])
                 lagrange.update(episode_mean,valid_mask)
             if len(replay) >= tc["warmup"]:
                 model.train()
@@ -381,8 +384,9 @@ def main() -> None:
                                         "excess_only":cmdp_version == "tgax_cmdp_v1"}
                                        if is_cmdp else None))
                     if is_cmdp:
-                        cost_names = (("delay", "loss", "fairness", "starvation")
-                                      if cmdp_version == "tgax_cmdp_v2"
+                        cost_names = (tuple(config["reward"]["cost_order"])
+                                      if cmdp_version in ("tgax_cmdp_v2", "tgax_cmdp_directional_v3",
+                                                          "tgax_cmdp_two_cost_v4")
                                       else ("vo", "vi", "jain", "low"))
                         stats.update(**{f"lambda_{name}":float(lagrange.multipliers[i])
                             for i,name in enumerate(cost_names)})
@@ -433,6 +437,11 @@ def main() -> None:
                 status["cmdp_multipliers"] = lagrange.multipliers.tolist()
                 status["cmdp_cost_order"] = config["reward"].get(
                     "cost_order", ["vo", "vi", "jain", "low_priority"])
+                status["episode_utility_mean"] = float(np.mean(episode_utilities))
+                for index,name in enumerate(status["cmdp_cost_order"]):
+                    status[f"episode_{name}_cost_mean"] = (float(episode_mean[index])
+                        if valid_mask[index] else None)
+                    status[f"lambda_{name}"] = float(lagrange.multipliers[index])
             (root / "status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
             print(json.dumps({"phase": "episode_complete", **status}), flush=True)
 

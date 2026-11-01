@@ -10,6 +10,9 @@ import numpy as np
 
 
 COST_ORDER = ("delay", "loss", "fairness", "starvation")
+DIRECTIONAL_COST_ORDER = ("delay_ul", "delay_dl", "loss_ul", "loss_dl",
+                          "fairness", "starvation")
+TWO_COST_ORDER = ("qos", "starvation")
 AC_NAMES = ("vo", "vi", "be", "bk")
 
 
@@ -135,6 +138,99 @@ def cmdp_components(metrics: dict, config: dict) -> tuple[float, np.ndarray, dic
     return utility, costs, parts
 
 
+def directional_cmdp_components(metrics: dict, config: dict) -> tuple[float, np.ndarray, dict]:
+    """Return direction-safe CMDP costs without allowing UL/DL compensation.
+
+    VO and VI remain equally weighted inside each direction after their
+    service delays have been normalized by the AC-specific references.  UL
+    and DL receive independent delay and final-failure constraints.
+    """
+    utility, base_costs, parts = cmdp_components(metrics, config)
+
+    values: list[float] = []
+    valid: list[bool] = []
+    for metric in ("delay", "loss"):
+        for direction in ("ul", "dl"):
+            groups = [parts[f"{metric}_{ac}_{direction}"] for ac in ("vo", "vi")]
+            available = [float(value) for value in groups if value is not None]
+            values.append(float(np.mean(available)) if available else 0.0)
+            valid.append(bool(available))
+    values.extend((float(base_costs[2]), float(base_costs[3])))
+    valid.extend((bool(parts["cost_valid"][2]), bool(parts["cost_valid"][3])))
+    costs = np.asarray(values, dtype=np.float64)
+    mask = np.asarray(valid, dtype=bool)
+    if costs.shape != (6,) or not np.isfinite(costs).all() or ((costs < 0) | (costs > 1)).any():
+        raise FloatingPointError("Directional CMDP costs must be six finite values in [0,1]")
+    parts.update(cost_order=list(DIRECTIONAL_COST_ORDER), cost_valid=mask.tolist(),
+                 cost_delay_ul=float(costs[0]), cost_delay_dl=float(costs[1]),
+                 cost_loss_ul=float(costs[2]), cost_loss_dl=float(costs[3]),
+                 cost_fairness=float(costs[4]), cost_starvation=float(costs[5]))
+    return utility, costs, parts
+
+
+def qos_mpdu_cost(delay_ms: float, reference_ms: float) -> float:
+    """Exact cost of one successfully ACKed VO/VI MPDU."""
+    delay = float(delay_ms); reference = float(reference_ms)
+    if not np.isfinite(delay) or delay < 0 or not np.isfinite(reference) or reference <= 0:
+        raise ValueError("QoS delay and reference must be finite with delay>=0 and reference>0")
+    return delay / (delay + reference)
+
+
+def completed_qos_increment(success_delays_ms, failed: int, reference_ms: float) -> tuple[float, int]:
+    """Exact numerator/count increment for final outcomes in one window."""
+    delays = np.asarray(success_delays_ms, dtype=np.float64)
+    failures = int(failed)
+    if delays.ndim != 1 or not np.isfinite(delays).all() or (delays < 0).any() or failures < 0:
+        raise ValueError("Completed QoS outcomes must be finite non-negative values")
+    return (float(sum(qos_mpdu_cost(delay, reference_ms) for delay in delays) + failures),
+            int(delays.size + failures))
+
+
+def two_cost_cmdp_components(metrics: dict, config: dict) -> tuple[float, np.ndarray, dict]:
+    """Two-Cost CMDP: exact completed-MPDU QoS plus worst active BE/BK service.
+
+    The environment supplies exact per-window completed-MPDU group costs.
+    Groups without any completed outcome are invalid rather than receiving
+    false zero cost.  Pending MPDUs are resolved only on a later ACK/drop.
+    """
+    utility, satisfaction, active = _utility(metrics, config)
+    groups: list[float] = []
+    parts: dict[str, object] = {
+        "utility": utility,
+        **{f"satisfaction_{ac}": float(satisfaction[i]) for i, ac in enumerate(AC_NAMES)},
+    }
+    for ac in ("vo", "vi"):
+        for direction in ("ul", "dl"):
+            name = f"qos_{ac}_{direction}"
+            valid = bool(metrics.get(f"{name}_valid", False))
+            value = metrics.get(name)
+            if valid:
+                value = float(value)
+                if not np.isfinite(value) or not 0 <= value <= 1:
+                    raise ValueError(f"{name} must lie in [0,1]")
+                groups.append(value)
+            else:
+                value = None
+            parts.update({name: value, f"{name}_valid": valid,
+                          f"{name}_finalized": int(metrics.get(f"{name}_finalized", 0)),
+                          f"{name}_pending_end": int(metrics.get(f"{name}_pending_end", 0))})
+    qos_valid = bool(groups)
+    qos_cost = float(np.mean(groups)) if qos_valid else 0.0
+
+    low_indices = [index for index in (2, 3) if active[index]]
+    starvation_valid = bool(low_indices)
+    starvation_cost = (1.0 - float(min(satisfaction[index] for index in low_indices))
+                       if starvation_valid else 0.0)
+    costs = np.asarray([qos_cost, starvation_cost], dtype=np.float64)
+    valid = np.asarray([qos_valid, starvation_valid], dtype=bool)
+    if not np.isfinite(costs).all() or ((costs < 0) | (costs > 1)).any():
+        raise FloatingPointError("Two-Cost CMDP costs must be finite values in [0,1]")
+    parts.update(cost_order=list(TWO_COST_ORDER), cost_valid=valid.tolist(),
+                 cost_qos=qos_cost, cost_starvation=starvation_cost,
+                 starvation_active_acs=[AC_NAMES[index] for index in low_indices])
+    return utility, costs, parts
+
+
 def legacy_cmdp_components_v1(metrics: dict, config: dict) -> tuple[float, np.ndarray, dict]:
     """Historical timely-delivery CMDP retained only for old checkpoints."""
     utility, satisfaction, _ = _utility(metrics, config)
@@ -176,8 +272,8 @@ def lagrangian_reward(utility: float, costs, budgets, multipliers,
     costs = np.asarray(costs, dtype=np.float64)
     budgets = np.asarray(budgets, dtype=np.float64)
     multipliers = np.asarray(multipliers, dtype=np.float64)
-    if costs.shape != (4,) or budgets.shape != (4,) or multipliers.shape != (4,):
-        raise ValueError("CMDP costs, budgets and multipliers must have four entries")
+    if costs.ndim != 1 or costs.size == 0 or budgets.shape != costs.shape or multipliers.shape != costs.shape:
+        raise ValueError("CMDP costs, budgets and multipliers must be equal non-empty vectors")
     if not np.isfinite(costs).all() or not np.isfinite(budgets).all() or not np.isfinite(multipliers).all():
         raise FloatingPointError("Non-finite Lagrangian component")
     if (multipliers < 0).any():
@@ -196,10 +292,11 @@ class LagrangeController:
     ema_costs: np.ndarray | None = None
 
     def __post_init__(self) -> None:
-        self.budgets = np.asarray(self.budgets, dtype=np.float64)
-        self.multipliers = np.asarray(self.multipliers, dtype=np.float64)
-        if self.budgets.shape != (4,) or self.multipliers.shape != (4,):
-            raise ValueError("Four CMDP budgets and multipliers are required")
+        self.budgets = np.asarray(self.budgets, dtype=np.float64).copy()
+        self.multipliers = np.asarray(self.multipliers, dtype=np.float64).copy()
+        if (self.budgets.ndim != 1 or self.budgets.size == 0
+                or self.multipliers.shape != self.budgets.shape):
+            raise ValueError("Equal non-empty CMDP budget and multiplier vectors are required")
         if (not np.isfinite(self.budgets).all() or not np.isfinite(self.multipliers).all()
                 or (self.budgets < 0).any() or (self.multipliers < 0).any()):
             raise ValueError("CMDP budgets and multipliers must be finite and non-negative")
@@ -208,8 +305,8 @@ class LagrangeController:
 
     def update(self, episode_costs, valid_mask=None) -> np.ndarray:
         costs = np.asarray(episode_costs, dtype=np.float64)
-        mask = np.ones(4, dtype=bool) if valid_mask is None else np.asarray(valid_mask, dtype=bool)
-        if costs.shape != (4,) or mask.shape != (4,) or not np.isfinite(costs[mask]).all():
+        mask = np.ones(self.budgets.size, dtype=bool) if valid_mask is None else np.asarray(valid_mask, dtype=bool)
+        if costs.shape != self.budgets.shape or mask.shape != self.budgets.shape or not np.isfinite(costs[mask]).all():
             raise ValueError("Invalid episode costs or mask")
         if self.ema_costs is None:
             self.ema_costs = costs.copy()

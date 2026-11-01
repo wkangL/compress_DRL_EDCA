@@ -56,15 +56,32 @@ def validate_config(c: dict) -> None:
         raise ValueError("Target update interval and tau must be valid")
     reward=c["reward"]; version=reward.get("version","v1")
     if version not in ("v1","v2","v2_service","tgax_v1","tgax_v2_service_guard","tgax_reward_v3",
-                       "tgax_cmdp_v1", "tgax_cmdp_v2"):
+                       "tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
+                       "tgax_cmdp_two_cost_v4"):
         raise ValueError("unsupported reward.version")
-    if version == "tgax_cmdp_v2":
+    if version == "tgax_cmdp_two_cost_v4":
+        weights=reward.get("utility_weights",[])
+        references=reward.get("qos_delay_reference_ms",[])
+        budgets=reward.get("budgets",[])
+        if reward.get("cost_order") != ["qos", "starvation"]:
+            raise ValueError("Two-Cost CMDP order must be qos/starvation")
+        if len(weights)!=4 or any(value<0 for value in weights) or abs(sum(weights)-1.0)>1e-12:
+            raise ValueError("Two-Cost CMDP utility weights must sum to one")
+        if len(references)!=2 or any(value<=0 for value in references):
+            raise ValueError("Two-Cost CMDP QoS references must contain positive VO/VI values")
+        if len(budgets)!=2 or any(not 0<=value<=1 for value in budgets):
+            raise ValueError("Two-Cost CMDP budgets must contain qos/starvation values in [0,1]")
+        required=()
+    elif version in ("tgax_cmdp_v2", "tgax_cmdp_directional_v3"):
         weights=reward.get("utility_weights",[])
         references=reward.get("delay_reference_ms",[])
         minimums=reward.get("minimum_satisfaction",[])
         budgets=reward.get("budgets",[])
-        if reward.get("cost_order") != ["delay", "loss", "fairness", "starvation"]:
-            raise ValueError("TGax CMDP-v2 cost order must be delay/loss/fairness/starvation")
+        expected_cost_order = (["delay", "loss", "fairness", "starvation"]
+            if version == "tgax_cmdp_v2" else
+            ["delay_ul", "delay_dl", "loss_ul", "loss_dl", "fairness", "starvation"])
+        if reward.get("cost_order") != expected_cost_order:
+            raise ValueError(f"{version} cost order is invalid")
         if len(weights)!=4 or any(value<0 for value in weights) or abs(sum(weights)-1.0)>1e-12:
             raise ValueError("TGax CMDP-v2 utility weights must be four non-negative values summing to one")
         if len(references)!=2 or any(value<=0 for value in references) or reward.get("delay_excess_cap",0)<=0:
@@ -73,8 +90,8 @@ def validate_config(c: dict) -> None:
             raise ValueError("TGax CMDP-v2 minimum Jain must lie in (0,1]")
         if len(minimums)!=2 or any(not 0<value<=1 for value in minimums):
             raise ValueError("TGax CMDP-v2 BE/BK minimum satisfaction must lie in (0,1]")
-        if len(budgets)!=4 or any(not 0<=value<=1 for value in budgets):
-            raise ValueError("TGax CMDP-v2 budgets must contain four values in [0,1]")
+        if len(budgets)!=len(expected_cost_order) or any(not 0<=value<=1 for value in budgets):
+            raise ValueError(f"{version} budgets must contain {len(expected_cost_order)} values in [0,1]")
         required=()
     elif version == "tgax_cmdp_v1":
         weights=reward.get("utility_weights",[]); low=reward.get("low_priority_min_satisfaction",[])
@@ -100,10 +117,11 @@ def validate_config(c: dict) -> None:
         raise ValueError("TGax Reward-v3 weights must sum to one")
     if version in ("v2_service","tgax_v2_service_guard") and (reward["low_priority"]<=0 or not 0<reward["low_priority_service_floor"]<=1):
         raise ValueError(f"{version} requires a positive low-priority weight and a service floor in (0,1]")
-    if version in ("tgax_cmdp_v1", "tgax_cmdp_v2") and reward.get("budgets") is not None:
+    if version in ("tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
+                   "tgax_cmdp_two_cost_v4") and reward.get("budgets") is not None:
         initial=reward.get("multiplier_initial",[])
-        if len(initial)!=4 or any(not math.isfinite(value) or value<0 for value in initial):
-            raise ValueError("TGax CMDP requires four finite non-negative initial multipliers")
+        if len(initial)!=len(reward["budgets"]) or any(not math.isfinite(value) or value<0 for value in initial):
+            raise ValueError("TGax CMDP requires one finite non-negative multiplier per cost")
         if reward.get("multiplier_learning_rate",0)<=0:
             raise ValueError("TGax CMDP multiplier learning rate must be positive")
         if not 0<reward.get("multiplier_ema_alpha",0)<=1:

@@ -10,11 +10,13 @@ from sim.backend.base_backend import ControlAction
 from sim.backend.tgax_ns3_backend import TgaxNs3Backend
 from sim.statistics.ap_state import age_statistics
 from rl.tgax_reward import tgax_reward
-from rl.cmdp_reward import (LagrangeController, cmdp_components,
-                            lagrangian_reward, legacy_cmdp_components_v1)
+from rl.cmdp_reward import (LagrangeController, cmdp_components, directional_cmdp_components,
+                            completed_qos_increment, lagrangian_reward, legacy_cmdp_components_v1,
+                            two_cost_cmdp_components)
 
 
-CMDP_VERSIONS = {"tgax_cmdp_v1", "tgax_cmdp_v2"}
+CMDP_VERSIONS = {"tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
+                 "tgax_cmdp_two_cost_v4"}
 
 
 class TgaxControlEnvironment:
@@ -149,6 +151,16 @@ class TgaxControlEnvironment:
                     f"{dname}_{name}_delay_valid":bool(samples),
                     f"{dname}_{name}_final_failure_rate":failed/max(pstart+arrived,1),
                     f"{dname}_{name}_retransmission_rate":retries/max(attempts,1)})
+                if self.config["reward"].get("version") == "tgax_cmdp_two_cost_v4" and ac < 2:
+                    if len(samples) != acked:
+                        raise RuntimeError(f"ACK/delay sample mismatch {dname}/{name}: {acked} vs {len(samples)}")
+                    reference=float(self.config["reward"]["qos_delay_reference_ms"][ac])
+                    increment,count=completed_qos_increment(samples,failed,reference)
+                    prefix=f"qos_{name}_{dname}"
+                    metrics.update({prefix:(float(increment/count) if count else None),
+                                    f"{prefix}_valid":bool(count),
+                                    f"{prefix}_finalized":count,
+                                    f"{prefix}_pending_end":pend})
                 total_attempts+=attempts; total_retries+=retries; total_failed+=failed; total_risk+=pstart+arrived
                 eligible+=de; ontime+=ot
             metrics[f"{name}_on_time_delivery_rate"]=ontime/max(eligible,1)
@@ -163,8 +175,10 @@ class TgaxControlEnvironment:
         change=(int(previous[0]!=self.action[0])+np.abs(self.action_features(previous)[scalar_start:]-self.action_features(self.action)[scalar_start:]).sum())/5
         reward_version = self.config["reward"].get("version")
         if reward_version in CMDP_VERSIONS:
-            component_fn = (cmdp_components if reward_version == "tgax_cmdp_v2"
-                            else legacy_cmdp_components_v1)
+            component_fn = ({"tgax_cmdp_v2": cmdp_components,
+                             "tgax_cmdp_directional_v3": directional_cmdp_components,
+                             "tgax_cmdp_two_cost_v4": two_cost_cmdp_components}
+                            .get(reward_version, legacy_cmdp_components_v1))
             utility,costs,parts=component_fn(metrics,self.config["reward"])
             value=(utility if self.lagrange is None else
                    lagrangian_reward(utility,costs,self.lagrange.budgets,self.lagrange.multipliers,
@@ -173,6 +187,9 @@ class TgaxControlEnvironment:
                 cmdp_multipliers=(self.lagrange.multipliers.tolist() if self.lagrange is not None else None),
                 reward=value)
             metrics.update({f"cmdp_{k}":v for k,v in parts.items()})
+            if self.lagrange is not None:
+                metrics.update({f"lambda_{name}":float(self.lagrange.multipliers[index])
+                                for index,name in enumerate(parts["cost_order"])})
         else:
             value,parts=tgax_reward(metrics,float(change),self.config["reward"])
             metrics.update(reward=value,**{f"reward_{k}":v for k,v in parts.items()})

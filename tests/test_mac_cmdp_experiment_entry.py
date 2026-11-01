@@ -14,7 +14,10 @@ def test_active_yaml_validates_and_covers_all_access_categories():
     validate(spec)
     assert sum(int(row["count"]) for row in spec["traffic"]) > 0
     assert {row["ac"] for row in spec["traffic"] if int(row["count"]) > 0} == {"VO", "VI", "BE", "BK"}
-    assert spec["training"]["parallel_workers"] == 3
+    assert spec["training"]["parallel_workers"] == 1
+    assert spec["training"]["stages"] * spec["training"]["episode_s"] == 100
+    assert spec["simulation"]["training_seeds"] == [42]
+    assert spec["simulation"]["evaluation_seeds"] == [66]
 
 
 def test_all_derived_paths_live_under_one_output_root(tmp_path):
@@ -33,16 +36,21 @@ def test_assignment_modes_are_deterministic_and_bounded():
     assert [assigned_sta(explicit, i, 4) for i in range(4)] == [3, 9, 3, 9]
 
 
-def test_prepare_emits_only_manual_cmdp_v2_fields(tmp_path):
+def test_prepare_emits_only_manual_two_cost_fields(tmp_path):
     source = ROOT / "configs/mac_cmdp_experiment.yaml"
     spec = yaml.safe_load(source.read_text(encoding="utf-8"))
     generated_path = prepare(spec, source, paths(spec, tmp_path / "experiment"))
     reward = load_config(generated_path)["reward"]
-    assert reward["version"] == "tgax_cmdp_v2"
-    assert reward["cost_order"] == ["delay", "loss", "fairness", "starvation"]
-    assert reward["budgets"] == [0.30, 0.15, 0.0, 0.25]
+    assert reward["version"] == "tgax_cmdp_two_cost_v4"
+    assert reward["cost_order"] == ["qos", "starvation"]
+    assert reward["budgets"] == [0.40, 0.90]
+    assert reward["multiplier_initial"] == [0.1, 0.1]
+    assert reward["qos_delay_reference_ms"] == [20.0, 50.0]
     assert reward["budget_status"] == "manual; no Default calibration"
     assert "low_priority_cost_budget" not in reward
     assert "low_priority_min_satisfaction" not in reward
     assert "minimum_timely_delivery" not in reward
+    assert "delay_excess_cap" not in reward
+    assert "minimum_jain" not in reward
+    assert "minimum_satisfaction" not in reward
 

@@ -31,6 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from project_config import ROOT, load_config
 
 ACS = ("VO", "VI", "BE", "BK")
+AGGREGATE_COSTS = ("delay", "loss", "fairness", "starvation")
+DIRECTIONAL_COSTS = ("delay_ul", "delay_dl", "loss_ul", "loss_dl", "fairness", "starvation")
+TWO_COSTS = ("qos", "starvation")
 MODELS = {"VOIP", "GMG", "BV3", "BV6", "HTTP", "FTP", "HTTP_REQ"}
 REFERENCE_TRANSPORT = {"VOIP": "UDP", "GMG": "UDP", "BV3": "TCP", "BV6": "TCP",
                        "HTTP": "TCP", "FTP": "TCP", "HTTP_REQ": "TCP"}
@@ -98,28 +101,41 @@ def validate(spec: dict) -> dict:
     weights = cmdp.get("utility_weights", {})
     if set(weights) != set(ACS) or abs(sum(float(weights[a]) for a in ACS) - 1.0) > 1e-12:
         raise ValueError("cmdp.utility_weights must contain VO/VI/BE/BK and sum to one")
-    references = cmdp.get("delay_reference_ms", {})
-    if set(references) != {"VO", "VI"} or any(float(references[ac]) <= 0 for ac in ("VO", "VI")):
-        raise ValueError("cmdp.delay_reference_ms must contain positive VO and VI values")
-    if float(cmdp.get("delay_excess_cap", 0)) <= 0:
-        raise ValueError("cmdp.delay_excess_cap must be positive")
-    minimum_jain = require_fraction(cmdp.get("minimum_jain"), "cmdp.minimum_jain")
-    if minimum_jain <= 0:
-        raise ValueError("cmdp.minimum_jain must be positive")
-    minimum_satisfaction = cmdp.get("minimum_satisfaction", {})
-    if set(minimum_satisfaction) != {"BE", "BK"}:
-        raise ValueError("cmdp.minimum_satisfaction must contain BE and BK")
-    if any(not 0 < float(minimum_satisfaction[ac]) <= 1 for ac in ("BE", "BK")):
-        raise ValueError("cmdp.minimum_satisfaction values must lie in (0,1]")
     budgets = cmdp.get("cost_budgets", {})
-    cost_names = ("delay", "loss", "fairness", "starvation")
-    if set(budgets) != set(cost_names):
-        raise ValueError("cmdp.cost_budgets must contain delay/loss/fairness/starvation")
+    if set(budgets) == set(TWO_COSTS):
+        cost_names = TWO_COSTS
+        references = cmdp.get("qos_delay_reference_ms", {})
+        if set(references) != {"VO", "VI"} or any(float(references[ac]) <= 0 for ac in ("VO", "VI")):
+            raise ValueError("cmdp.qos_delay_reference_ms must contain positive VO and VI values")
+        obsolete = {"delay_reference_ms", "delay_excess_cap", "minimum_jain", "minimum_satisfaction"}
+        present = sorted(obsolete & set(cmdp))
+        if present:
+            raise ValueError(f"Two-Cost CMDP contains obsolete fields: {present}")
+    elif set(budgets) == set(AGGREGATE_COSTS):
+        cost_names = AGGREGATE_COSTS
+    elif set(budgets) == set(DIRECTIONAL_COSTS):
+        cost_names = DIRECTIONAL_COSTS
+    else:
+        raise ValueError("cmdp.cost_budgets must use aggregate, directional, or qos/starvation names")
+    if cost_names != TWO_COSTS:
+        references = cmdp.get("delay_reference_ms", {})
+        if set(references) != {"VO", "VI"} or any(float(references[ac]) <= 0 for ac in ("VO", "VI")):
+            raise ValueError("cmdp.delay_reference_ms must contain positive VO and VI values")
+        if float(cmdp.get("delay_excess_cap", 0)) <= 0:
+            raise ValueError("cmdp.delay_excess_cap must be positive")
+        minimum_jain = require_fraction(cmdp.get("minimum_jain"), "cmdp.minimum_jain")
+        if minimum_jain <= 0:
+            raise ValueError("cmdp.minimum_jain must be positive")
+        minimum_satisfaction = cmdp.get("minimum_satisfaction", {})
+        if set(minimum_satisfaction) != {"BE", "BK"}:
+            raise ValueError("cmdp.minimum_satisfaction must contain BE and BK")
+        if any(not 0 < float(minimum_satisfaction[ac]) <= 1 for ac in ("BE", "BK")):
+            raise ValueError("cmdp.minimum_satisfaction values must lie in (0,1]")
     for name in cost_names:
         require_fraction(budgets[name], f"cmdp.cost_budgets.{name}")
     initial = cmdp.get("multiplier_initial")
-    if not isinstance(initial, list) or len(initial) != 4 or any(float(value) < 0 for value in initial):
-        raise ValueError("cmdp.multiplier_initial must contain four non-negative values")
+    if not isinstance(initial, list) or len(initial) != len(cost_names) or any(float(value) < 0 for value in initial):
+        raise ValueError("cmdp.multiplier_initial must contain one non-negative value per Cost")
     if float(cmdp.get("multiplier_learning_rate", 0)) <= 0:
         raise ValueError("cmdp.multiplier_learning_rate must be positive")
     if not 0 < float(cmdp.get("multiplier_ema_alpha", 0)) <= 1:
@@ -245,7 +261,9 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
 
     cmdp, sim, train = spec["cmdp"], spec["simulation"], spec["training"]
     weights = cmdp["utility_weights"]
-    cost_names = ("delay", "loss", "fairness", "starvation")
+    budget_keys=set(cmdp["cost_budgets"])
+    cost_names = (TWO_COSTS if budget_keys == set(TWO_COSTS) else
+                  DIRECTIONAL_COSTS if budget_keys == set(DIRECTIONAL_COSTS) else AGGREGATE_COSTS)
     budgets = [float(cmdp["cost_budgets"][name]) for name in cost_names]
     parent_path = ROOT / spec["experiment"]["parent_config"]
     # Materialize the inherited base and replace the reward block completely.
@@ -257,23 +275,32 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
                                 flows=_config_path(p["inputs"] / "flows.csv"),
                                 direct_high_watermark=int(sim.get("direct_high_watermark", 0)))
     generated["reward"] = {
-        "version": "tgax_cmdp_v2",
+        "version": ("tgax_cmdp_two_cost_v4" if cost_names == TWO_COSTS else
+                    "tgax_cmdp_directional_v3" if cost_names == DIRECTIONAL_COSTS else "tgax_cmdp_v2"),
         "cost_order": list(cost_names),
         "utility_weights": [float(weights[a]) for a in ACS],
-        "qos_threshold_ms": [float(cmdp["delay_reference_ms"]["VO"]),
-                             float(cmdp["delay_reference_ms"]["VI"])],
-        "delay_reference_ms": [float(cmdp["delay_reference_ms"]["VO"]),
-                               float(cmdp["delay_reference_ms"]["VI"])],
-        "delay_excess_cap": float(cmdp["delay_excess_cap"]),
-        "minimum_jain": float(cmdp["minimum_jain"]),
-        "minimum_satisfaction": [float(cmdp["minimum_satisfaction"]["BE"]),
-                                 float(cmdp["minimum_satisfaction"]["BK"])],
         "budgets": budgets, "budget_status": "manual; no Default calibration",
         "budget_source": _config_path(source_yaml),
         "multiplier_initial": list(map(float, cmdp["multiplier_initial"])),
         "multiplier_learning_rate": float(cmdp["multiplier_learning_rate"]),
         "multiplier_ema_alpha": float(cmdp["multiplier_ema_alpha"]),
         "multiplier_maximum": float(cmdp["multiplier_maximum"])}
+    if cost_names == TWO_COSTS:
+        generated["reward"].update(
+            qos_delay_reference_ms=[float(cmdp["qos_delay_reference_ms"]["VO"]),
+                                    float(cmdp["qos_delay_reference_ms"]["VI"])],
+            qos_threshold_ms=[float(cmdp["qos_delay_reference_ms"]["VO"]),
+                              float(cmdp["qos_delay_reference_ms"]["VI"])])
+    else:
+        generated["reward"].update(
+            qos_threshold_ms=[float(cmdp["delay_reference_ms"]["VO"]),
+                              float(cmdp["delay_reference_ms"]["VI"])],
+            delay_reference_ms=[float(cmdp["delay_reference_ms"]["VO"]),
+                                float(cmdp["delay_reference_ms"]["VI"])],
+            delay_excess_cap=float(cmdp["delay_excess_cap"]),
+            minimum_jain=float(cmdp["minimum_jain"]),
+            minimum_satisfaction=[float(cmdp["minimum_satisfaction"]["BE"]),
+                                  float(cmdp["minimum_satisfaction"]["BK"])])
     generated["training"].update(train)
     generated["run"] = {"mode": spec["experiment"]["id"],
                         "seeds": list(map(int, sim["training_seeds"])),
@@ -289,10 +316,7 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
     manifest = {"experiment_id": spec["experiment"]["id"], "spec": _config_path(source_yaml),
                 "spec_sha256": digest, "flow_count": len(flow_rows), "counts": counts,
                 "cost_order": list(cost_names), "cost_budgets": budgets,
-                "delay_reference_ms": cmdp["delay_reference_ms"],
-                "delay_excess_cap": cmdp["delay_excess_cap"],
-                "minimum_jain": cmdp["minimum_jain"],
-                "minimum_satisfaction": cmdp["minimum_satisfaction"],
+                "qos_delay_reference_ms": cmdp.get("qos_delay_reference_ms"),
                 "note": "Cost budgets are manual. No Default budget calibration was run."}
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     return train_config

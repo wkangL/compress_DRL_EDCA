@@ -1,8 +1,8 @@
 # 唯一需要编辑的实验配置。修改业务数量、Cost阈值、训练参数和输出目录后，
 # 执行 scripts/run_mac_cmdp_experiment.py train。
 experiment:
-  id: mac_cmdp_custom
-  description: "Single-BSS direct-MAC custom CMDP experiment"
+  id: mac_cmdp_two_cost_fast
+  description: "Single-BSS exact two-Cost CMDP 100-step reward gate"
   # Canonical source input.  Kept outside results/ so a clean source-only
   # deployment does not depend on historical experiment outputs.
   topology_template: configs/assets/mac_cmdp_topology40.csv
@@ -10,7 +10,7 @@ experiment:
 
 output:
   # 命令行 --output 可以覆盖此目录。业务、配置、训练、表格和图片全部放在其下。
-  root: results/experiments/mac_cmdp_custom
+  root: results/experiments/mac_cmdp_two_cost_fast_seed42_eval66_20261101
 
 traffic:
   - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 40, assignment: spread}
@@ -25,14 +25,11 @@ traffic:
 
 cmdp:
   utility_weights: {VO: 0.40, VI: 0.40, BE: 0.10, BK: 0.10}
-  # All references, minimums and budgets are manually chosen here.  No
-  # Default run or evaluation result is allowed to rewrite them.
-  delay_reference_ms: {VO: 20.0, VI: 50.0}
-  delay_excess_cap: 3.0
-  minimum_jain: 0.50
-  minimum_satisfaction: {BE: 0.02, BK: 0.005}
-  cost_budgets: {delay: 0.30, loss: 0.15, fairness: 0.0, starvation: 0.25}
-  multiplier_initial: [0.1, 0.1, 0.1, 0.1]
+  # QoS references shape q=D/(D+tau); they are not hard deadlines.
+  qos_delay_reference_ms: {VO: 20.0, VI: 50.0}
+  # Budgets are always manual.  No Default/evaluation result may rewrite them.
+  cost_budgets: {qos: 0.40, starvation: 0.90}
+  multiplier_initial: [0.1, 0.1]
   multiplier_learning_rate: 0.01
   multiplier_ema_alpha: 0.2
   multiplier_maximum: 3.0
@@ -40,19 +37,19 @@ cmdp:
 simulation:
   direct_high_watermark: 0
   evaluation_duration_s: 20
-  training_seeds: [42, 66, 88]
+  training_seeds: [42]
   # 必须与training_seeds分开，确保final checkpoint在未见随机种子上评估。
-  evaluation_seeds: [44, 55, 77]
+  evaluation_seeds: [66]
 
 training:
   # Seed-level parallelism.  Each worker owns one independent output/checkpoint
   # tree and normally consumes one ns-3 CPU core (plus light PyTorch work).
-  parallel_workers: 3
-  # 总环境步数 = stages * episode_s / 1 s。当前为20*20=400步/seed。
-  stages: 20
+  parallel_workers: 1
+  # 快速Reward门禁：5*20=100步；通过后再单独延长正式训练。
+  stages: 5
   episode_s: 20.0
   updates_per_stage: 20
-  epsilon_steps: 450
+  epsilon_steps: 100
   q_lr: 0.0003
   representation_lr: 0.0001
   batch_size: 32
