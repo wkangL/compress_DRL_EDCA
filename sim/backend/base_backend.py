@@ -11,6 +11,11 @@ class ControlAction:
     beta1: float = 2.0
     beta2: float = 2.0
     gamma: int = 7
+    # None preserves the legacy/unified protocol: AP and every STA use
+    # ``profile`` and ``custom_growth``.  Split-profile control supplies the
+    # STA values explicitly while keeping the four CW-growth parameters shared.
+    sta_profile: int | None = None
+    sta_custom_growth: bool | None = None
 
 
 @dataclass(frozen=True)

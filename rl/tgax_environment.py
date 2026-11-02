@@ -20,6 +20,18 @@ CMDP_VERSIONS = {"tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
 EXACT_QOS_VERSIONS = {"tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6"}
 
 
+def configured_default_action(config: dict) -> np.ndarray:
+    """Return a canonical default action for unified or split profile control."""
+    mode=config["action"].get("profile_application_mode","unified")
+    branches=2 if mode=="split_ap_sta" else 1
+    default=list(config["action"].get("default_action",[0,0,5,5,2]))
+    if branches==2 and len(default)==5:
+        default=[default[0],default[0],*default[1:]]
+    if len(default)!=branches+4:
+        raise ValueError(f"default_action must contain {branches+4} branch indices")
+    return np.asarray(default,dtype=np.int64)
+
+
 class TgaxControlEnvironment:
     def __init__(self,config:dict,method:str,seed:int,directory:Path,duration_s:float,encoder_version:int=0):
         self.config=config; self.method=method; self.time=0.; self.duration_s=duration_s
@@ -28,7 +40,11 @@ class TgaxControlEnvironment:
         self.generator=ReportGenerator(self.history,self.cache)
         self.backend=TgaxNs3Backend(config,seed,directory,duration_s)
         self.ap_queue=np.zeros(4)
-        self.action=np.asarray(config["action"].get("default_action",[0,0,5,5,2]),dtype=np.int64)
+        self.profile_application_mode=config["action"].get("profile_application_mode","unified")
+        if self.profile_application_mode not in ("unified","split_ap_sta"):
+            raise ValueError("action.profile_application_mode must be unified or split_ap_sta")
+        self.profile_branch_count=2 if self.profile_application_mode=="split_ap_sta" else 1
+        self.action=configured_default_action(config)
         self.previous_report_count=0; self.demand_debt=np.zeros(4)
         self.sta_demand_debt=np.zeros(n)
         self.low_zero_streak=np.zeros(2,dtype=np.int64)
@@ -52,17 +68,30 @@ class TgaxControlEnvironment:
     def action_features(self,action):
         c=self.config["action"]
         profile_count=int(c.get("profile_branch_size",16))
-        one=np.eye(profile_count,dtype=np.float32)[action[0]]; values=[]
-        for index,key in enumerate(("alpha","beta1","beta2","gamma"),1):
+        action=np.asarray(action,dtype=np.int64)
+        if len(action)!=self.profile_branch_count+4:
+            raise ValueError("Action branch count does not match profile_application_mode")
+        profiles=np.eye(profile_count,dtype=np.float32)[action[:self.profile_branch_count]].reshape(-1)
+        values=[]
+        for index,key in enumerate(("alpha","beta1","beta2","gamma"),self.profile_branch_count):
             options=c[key]; values.append((options[action[index]]-min(options))/(max(options)-min(options)))
-        return np.r_[one,values].astype(np.float32)
+        return np.r_[profiles,values].astype(np.float32)
 
     def decode(self,a,custom=True):
         c=self.config["action"]
+        a=np.asarray(a,dtype=np.int64)
         fallback=c.get("default_fallback_index")
-        native=bool(fallback is not None and int(a[0])==int(fallback))
-        profile=int(c.get("default_profile",0)) if native else int(a[0])
-        return ControlAction(profile,custom and not native,c["alpha"][a[1]],c["beta1"][a[2]],c["beta2"][a[3]],c["gamma"][a[4]])
+        native=[bool(fallback is not None and int(a[i])==int(fallback))
+                for i in range(self.profile_branch_count)]
+        profiles=[int(c.get("default_profile",0)) if native[i] else int(a[i])
+                  for i in range(self.profile_branch_count)]
+        offset=self.profile_branch_count
+        values=(c["alpha"][a[offset]],c["beta1"][a[offset+1]],
+                c["beta2"][a[offset+2]],c["gamma"][a[offset+3]])
+        if self.profile_branch_count==1:
+            return ControlAction(profiles[0],custom and not native[0],*values)
+        return ControlAction(profiles[0],custom and not native[0],*values,
+                             sta_profile=profiles[1],sta_custom_growth=custom and not native[1])
 
     def observation(self,events,start):
         history,age,valid=self.cache.snapshot(self.time)
@@ -172,8 +201,12 @@ class TgaxControlEnvironment:
         metrics["final_failure_fraction"]=total_failed/max(total_risk,1)
         _,age,valid=self.cache.snapshot(self.time); mean,p95,coverage=age_statistics(age,valid)
         metrics.update(report_age_mean_s=mean,report_age_p95_s=p95,valid_report_coverage=coverage)
-        scalar_start=int(self.config["action"].get("profile_branch_size",16))
-        change=(int(previous[0]!=self.action[0])+np.abs(self.action_features(previous)[scalar_start:]-self.action_features(self.action)[scalar_start:]).sum())/5
+        scalar_start=int(self.config["action"].get("profile_branch_size",16))*self.profile_branch_count
+        profile_changes=int(np.count_nonzero(previous[:self.profile_branch_count]!=
+                                              self.action[:self.profile_branch_count]))
+        scalar_changes=np.abs(self.action_features(previous)[scalar_start:]-
+                              self.action_features(self.action)[scalar_start:]).sum()
+        change=(profile_changes+scalar_changes)/(self.profile_branch_count+4)
         reward_version = self.config["reward"].get("version")
         if reward_version in CMDP_VERSIONS:
             component_fn = ({"tgax_cmdp_v2": cmdp_components,

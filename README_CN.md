@@ -14,6 +14,17 @@
 
 业务数量、人工Cost阈值、训练参数、seed和输出目录都在同一个YAML中；命令行`--output`可临时覆盖输出目录。不再进行Default Cost阈值标定。完整字段说明见[`reports/MAC-CMDP通用YAML实验入口说明.md`](reports/MAC-CMDP通用YAML实验入口说明.md)。下文保留的是TGax多BSS环境及历史实验复现说明。
 
+EDCA Profile的作用范围也在同一YAML中选择：
+
+```yaml
+action:
+  profile_application_mode: unified      # AP和全部STA共用一个Profile分支
+# profile_application_mode: split_ap_sta # AP Profile与STA Profile分别选择
+```
+
+`split_ap_sta`将动作从`(Profile, alpha, beta1, beta2, gamma)`扩展为
+`(AP Profile, STA Profile, alpha, beta1, beta2, gamma)`。四个CW增长参数仍由AP和STA共享；业务、观测统计、TCN、Reward和Cost定义不变。旧配置未声明该字段时默认使用`unified`，因此旧checkpoint结构保持兼容。
+
 ## 当前阶段：TGax-based 7 BSS唯一候选配置（暂停强化学习）
 
 唯一候选环境为`subset7 / candidate_ftp_bk`：TGax reuse-3几何中的中心同信道BSS和六个最近同信道邻居，7个AP、每AP 40个STA，共280个STA。每BSS在`mix_min1`基础上保留各一路官方业务行为，AC映射为VoIP→VO、BV3/BV6/Gaming→VI、HTTP→BE、FTP→BK；只有FTP应用优先级改变，随机业务模型和真实TCP行为不变。BSS 0是未来唯一智能控制对象；本阶段全部节点使用Default EDCA，不启动TCN/DDQN。完整官方100%业务及全部历史结果继续保留。

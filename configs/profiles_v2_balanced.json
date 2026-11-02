@@ -1,0 +1,18 @@
+[
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0},"BK":{"AIFSN":7,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":15,"TXOP_ms":1.504},"VI":{"AIFSN":2,"CWmin":7,"CWmax":31,"TXOP_ms":3.008},"BE":{"AIFSN":3,"CWmin":31,"CWmax":1023,"TXOP_ms":0.0},"BK":{"AIFSN":7,"CWmin":31,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":3.008},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":15,"CWmax":511,"TXOP_ms":0.0},"BK":{"AIFSN":7,"CWmin":31,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":6.016},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":6.016},"BE":{"AIFSN":3,"CWmin":31,"CWmax":1023,"TXOP_ms":0.0},"BK":{"AIFSN":7,"CWmin":63,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":3,"CWmin":15,"CWmax":63,"TXOP_ms":1.504},"VI":{"AIFSN":3,"CWmin":31,"CWmax":127,"TXOP_ms":2.528},"BE":{"AIFSN":3,"CWmin":31,"CWmax":511,"TXOP_ms":0.0},"BK":{"AIFSN":7,"CWmin":63,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":7,"CWmax":255,"TXOP_ms":1.504},"BK":{"AIFSN":7,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0},"BK":{"AIFSN":5,"CWmin":15,"CWmax":255,"TXOP_ms":1.504}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":7,"CWmax":255,"TXOP_ms":1.504},"BK":{"AIFSN":5,"CWmin":15,"CWmax":255,"TXOP_ms":1.504}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":2,"CWmin":7,"CWmax":127,"TXOP_ms":2.528},"BK":{"AIFSN":7,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":2,"CWmin":3,"CWmax":63,"TXOP_ms":3.008},"BK":{"AIFSN":7,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0},"BK":{"AIFSN":3,"CWmin":15,"CWmax":127,"TXOP_ms":2.528}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":3,"CWmin":15,"CWmax":1023,"TXOP_ms":0.0},"BK":{"AIFSN":2,"CWmin":7,"CWmax":63,"TXOP_ms":3.008}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":2,"CWmin":7,"CWmax":127,"TXOP_ms":2.528},"BK":{"AIFSN":3,"CWmin":15,"CWmax":127,"TXOP_ms":2.528}},
+  {"VO":{"AIFSN":2,"CWmin":3,"CWmax":7,"TXOP_ms":2.080},"VI":{"AIFSN":2,"CWmin":7,"CWmax":15,"TXOP_ms":4.096},"BE":{"AIFSN":2,"CWmin":3,"CWmax":63,"TXOP_ms":3.008},"BK":{"AIFSN":2,"CWmin":7,"CWmax":63,"TXOP_ms":3.008}},
+  {"VO":{"AIFSN":3,"CWmin":7,"CWmax":31,"TXOP_ms":1.504},"VI":{"AIFSN":3,"CWmin":15,"CWmax":63,"TXOP_ms":2.528},"BE":{"AIFSN":2,"CWmin":7,"CWmax":127,"TXOP_ms":2.528},"BK":{"AIFSN":3,"CWmin":15,"CWmax":127,"TXOP_ms":2.528}},
+  {"VO":{"AIFSN":3,"CWmin":15,"CWmax":63,"TXOP_ms":1.504},"VI":{"AIFSN":3,"CWmin":31,"CWmax":127,"TXOP_ms":2.528},"BE":{"AIFSN":2,"CWmin":3,"CWmax":31,"TXOP_ms":4.096},"BK":{"AIFSN":2,"CWmin":7,"CWmax":63,"TXOP_ms":4.096}}
+]

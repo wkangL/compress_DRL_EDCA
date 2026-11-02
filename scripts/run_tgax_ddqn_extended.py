@@ -26,7 +26,7 @@ from reporting.sta_state import StateScaler
 from rl.artifacts import atomic_output
 from rl.replay_buffer import ReplayBuffer, Transition
 from rl.trainer import InferenceCache, explore, freeze_target, set_seed, td_update, update_target
-from rl.tgax_environment import TgaxControlEnvironment
+from rl.tgax_environment import TgaxControlEnvironment, configured_default_action
 from rl.cmdp_reward import LagrangeController
 from scripts.run_tgax_ddqn_v1 import baseline_scaler, compact, save_csv
 from scripts.run_tgax_fixed_actions import summarize
@@ -36,7 +36,10 @@ CONFIG = ROOT / "configs/tgax_ddqn_extended_seed41.yaml"
 DEFAULT_ROOT = ROOT / "results/raw/tgax_ddqn_extended_seed41_400step_20261025"
 METHOD = "compressed_async_age"
 SCENARIO = "candidate_voip8_gaming4_ftp_bk"
-BRANCH_NAMES = ("profile", "alpha", "beta1", "beta2", "gamma")
+def branch_names(config: dict) -> tuple[str,...]:
+    return (("ap_profile","sta_profile","alpha","beta1","beta2","gamma")
+            if config["action"].get("profile_application_mode","unified")=="split_ap_sta"
+            else ("profile","alpha","beta1","beta2","gamma"))
 
 
 def source_hash(config_path: Path) -> str:
@@ -97,14 +100,15 @@ def save_live_diagnostics(root: Path, step_rows: list[dict], losses: list[dict])
     temporary.replace(target)
 
 
-def action_histogram(rows: list[dict]) -> list[dict]:
-    counters = [Counter() for _ in BRANCH_NAMES]
+def action_histogram(rows: list[dict], config: dict) -> list[dict]:
+    names=branch_names(config)
+    counters = [Counter() for _ in names]
     for row in rows:
         action = row["action"] if isinstance(row["action"], list) else json.loads(row["action"])
         for i, value in enumerate(action):
             counters[i][int(value)] += 1
     return [{"branch": name, "counts": dict(sorted(counter.items()))}
-            for name, counter in zip(BRANCH_NAMES, counters)]
+            for name, counter in zip(names, counters)]
 
 
 def evaluate_one(config: dict, model: ControlNetwork, scaler: StateScaler, seed: int,
@@ -116,14 +120,13 @@ def evaluate_one(config: dict, model: ControlNetwork, scaler: StateScaler, seed:
     obs = env.reset_observation()
     try:
         for step in range(round(duration / config["timing"]["decision_s"])):
-            action = (inference.select(obs) if learned else
-                      np.asarray(config["action"].get("default_action", [0, 0, 5, 5, 2]), dtype=np.int64))
+            action = inference.select(obs) if learned else configured_default_action(config)
             obs, reward, metrics = env.step(action, config["timing"]["decision_s"], custom=learned)
             rows.append({"step": step + 1, "action": action.tolist(), "reward": reward, **metrics})
     finally:
         env.close()
     summary = summarize(rows, duration, directory, config)
-    summary.update(eval_seed=seed, learned=learned, action_distribution=action_histogram(rows),
+    summary.update(eval_seed=seed, learned=learned, action_distribution=action_histogram(rows,config),
                    actions=[row["action"] for row in rows])
     (directory / "evaluation_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     save_csv(directory / "evaluation_steps.csv",
@@ -296,7 +299,7 @@ def main() -> None:
         scaler_env=TgaxControlEnvironment(config,"default",40,scaler_dir,5.0,0)
         scaler_obs=scaler_env.reset_observation()
         try:
-            default_action=np.asarray(config["action"].get("default_action",[0,0,5,5,2]),dtype=np.int64)
+            default_action=configured_default_action(config)
             for _ in range(5):
                 scaler_obs,_,_=scaler_env.step(default_action,1.0,custom=False)
         finally:
@@ -500,7 +503,7 @@ def main() -> None:
                         "selected_step": best_step, "held_out_seeds": config["evaluation"]["held_out_seeds"],
                         "runtime_s": time.perf_counter() - started}
         (root / "status.json").write_text(json.dumps(final_status, indent=2), encoding="utf-8")
-        (root / "action_distribution.json").write_text(json.dumps(action_histogram(step_rows), indent=2), encoding="utf-8")
+        (root / "action_distribution.json").write_text(json.dumps(action_histogram(step_rows,config), indent=2), encoding="utf-8")
         print(json.dumps({"phase": "complete", **final_status}), flush=True)
     except BaseException as error:
         diagnostic = {"state": "aborted", "error": repr(error), "steps": steps, "updates": updates,

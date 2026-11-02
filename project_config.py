@@ -46,6 +46,15 @@ def validate_config(c: dict) -> None:
         raise ValueError("History must contain an integer number of samples")
     if c["network"]["num_sta"] < 1:
         raise ValueError("At least one STA is required")
+    action=c["action"]
+    profile_mode=action.get("profile_application_mode","unified")
+    if profile_mode not in ("unified","split_ap_sta"):
+        raise ValueError("action.profile_application_mode must be unified or split_ap_sta")
+    default_action=action.get("default_action")
+    if default_action is not None:
+        valid_lengths=({5} if profile_mode=="unified" else {5,6})
+        if len(default_action) not in valid_lengths:
+            raise ValueError(f"default_action length is invalid for {profile_mode}")
     state=c["state"]
     if len(state.get("global_features",[]))!=10 or state.get("associated_sta_scale",0)<=0 or state.get("queue_byte_scale",0)<=0:
         raise ValueError("State schema requires ten AP-local global features and positive scales")
@@ -121,7 +130,7 @@ def validate_config(c: dict) -> None:
     if version in ("v2_service","tgax_v2_service_guard") and (reward["low_priority"]<=0 or not 0<reward["low_priority_service_floor"]<=1):
         raise ValueError(f"{version} requires a positive low-priority weight and a service floor in (0,1]")
     if version in ("tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                   "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5") and reward.get("budgets") is not None:
+                   "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6") and reward.get("budgets") is not None:
         initial=reward.get("multiplier_initial",[])
         if len(initial)!=len(reward["budgets"]) or any(not math.isfinite(value) or value<0 for value in initial):
             raise ValueError("TGax CMDP requires one finite non-negative multiplier per cost")

@@ -1,8 +1,8 @@
 # 唯一需要编辑的实验配置。修改业务数量、Cost阈值、训练参数和输出目录后，
 # 执行 scripts/run_mac_cmdp_experiment.py train。
 experiment:
-  id: mac_cmdp_five_cost_100step
-  description: "Single-BSS four-direction exact QoS plus starvation CMDP, Gaming UL80/DL40, 100 steps"
+  id: mac_cmdp_balanced_profiles_split_400step
+  description: "Single-BSS AP/STA split-Profile five-Cost CMDP with balanced BE/BK-capable profiles, 400 steps"
   # Canonical source input.  Kept outside results/ so a clean source-only
   # deployment does not depend on historical experiment outputs.
   topology_template: configs/assets/mac_cmdp_topology40.csv
@@ -10,18 +10,27 @@ experiment:
 
 output:
   # 命令行 --output 可以覆盖此目录。业务、配置、训练、表格和图片全部放在其下。
-  root: results/experiments/mac_cmdp_five_cost_100step_r2_seed42_eval66_20261102
+  root: results/experiments/mac_cmdp_balanced_profiles_split_400step_seed42_eval66_20261102
+
+# EDCA Profile作用范围：
+# - unified：一个Profile同时应用到AP和全部STA（旧行为，兼容旧checkpoint）；
+# - split_ap_sta：动作包含AP Profile和STA Profile两个独立分支。
+# 两种模式均共享alpha/beta1/beta2/gamma，观测统计和Reward保持不变。
+action:
+  profile_application_mode: split_ap_sta
+  # 新增P5-P15作为BE/BK保护动作；历史configs/profiles.json不覆盖。
+  profiles: configs/profiles_v2_balanced.json
 
 traffic:
-  - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 40, assignment: spread}
-  - {name: voip_dl, model: VOIP, direction: DL, ac: VO, count: 20, assignment: spread}
-  - {name: gaming_ul, model: GMG, direction: UL, ac: VI, count: 80, assignment: round_robin}
-  - {name: gaming_dl, model: GMG, direction: DL, ac: VI, count: 40, assignment: spread}
+  - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 20, assignment: spread}
+  - {name: voip_dl, model: VOIP, direction: DL, ac: VO, count: 10, assignment: spread}
+  - {name: gaming_ul, model: GMG, direction: UL, ac: VI, count: 30, assignment: round_robin}
+  - {name: gaming_dl, model: GMG, direction: DL, ac: VI, count: 20, assignment: spread}
   - {name: bv3_ul, model: BV3, direction: UL, ac: VI, count: 10, assignment: spread, sta_offset: 2}
-  - {name: http_be_dl, model: HTTP, direction: DL, ac: BE, count: 20, assignment: spread}
-  - {name: ftp_be_ul, model: FTP, direction: UL, ac: BE, count: 12, assignment: spread}
-  - {name: http_bk_dl, model: HTTP, direction: DL, ac: BK, count: 16, assignment: spread}
-  - {name: ftp_bk_ul, model: FTP, direction: UL, ac: BK, count: 8, assignment: spread}
+  - {name: http_be_dl, model: HTTP, direction: DL, ac: BE, count: 10, assignment: spread}
+  - {name: ftp_be_ul, model: FTP, direction: UL, ac: BE, count: 6, assignment: spread}
+  - {name: http_bk_dl, model: HTTP, direction: DL, ac: BK, count: 10, assignment: spread}
+  - {name: ftp_bk_ul, model: FTP, direction: UL, ac: BK, count: 10, assignment: spread}
 
 cmdp:
   utility_weights: {VO: 0.40, VI: 0.40, BE: 0.10, BK: 0.10}
@@ -39,7 +48,7 @@ cmdp:
 
 simulation:
   direct_high_watermark: 0
-  evaluation_duration_s: 20
+  evaluation_duration_s: 40
   training_seeds: [42]
   evaluation_seeds: [66]
 
@@ -47,12 +56,12 @@ training:
   # Seed-level parallelism.  Each worker owns one independent output/checkpoint
   # tree and normally consumes one ns-3 CPU core (plus light PyTorch work).
   parallel_workers: 1
-  # 快速Reward门禁：10*10=100个1秒环境决策步。
-  stages: 10
-  episode_s: 10.0
+  # 长训练：20*20=400个1秒环境决策步。
+  stages: 20
+  episode_s: 20.0
   # One update per newly collected transition after Replay warmup.
-  updates_per_stage: 10
-  epsilon_steps: 100
+  updates_per_stage: 20
+  epsilon_steps: 300
   q_lr: 0.0003
   representation_lr: 0.0001
   batch_size: 32

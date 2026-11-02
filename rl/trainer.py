@@ -36,9 +36,10 @@ def tensors(states: list[dict], scaler: StateScaler) -> tuple[torch.Tensor,...]:
 def explore(model: ControlNetwork, rng: np.random.Generator) -> np.ndarray:
     result=np.asarray([rng.integers(n) for n in model.branches],dtype=np.int64)
     pairs=torch.nonzero(model.beta_mask).numpy()
-    result[2:4]=pairs[rng.integers(len(pairs))]
-    if model.default_fallback_index is not None and result[0]==model.default_fallback_index:
-        result[1:]=0
+    result[model.scalar_offset+1:model.scalar_offset+3]=pairs[rng.integers(len(pairs))]
+    if (model.default_fallback_index is not None and
+            np.all(result[:model.profile_branch_count]==model.default_fallback_index)):
+        result[model.scalar_offset:]=0
     return result
 
 
@@ -73,7 +74,8 @@ def update_target(model: ControlNetwork, target: ControlNetwork, update: int, co
 
 def replay_audit(replay: ReplayBuffer, stage: int) -> dict:
     scenarios=Counter(t.scenario for t in replay.data)
-    branches=[Counter(int(t.action[i]) for t in replay.data) for i in range(5)]
+    branch_count=(len(replay.data[0].action) if replay.data else 0)
+    branches=[Counter(int(t.action[i]) for t in replay.data) for i in range(branch_count)]
     return dict(stage=stage,transitions=len(replay),scenario_counts=json.dumps(dict(sorted(scenarios.items()))),
                 action_branch_counts=json.dumps([{str(k):v for k,v in sorted(c.items())} for c in branches]),
                 exploratory_fraction=float(np.mean([t.exploratory for t in replay.data])) if replay.data else 0.,

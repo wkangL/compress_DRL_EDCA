@@ -1,0 +1,57 @@
+# 本机独立训练配置：业务、网络、训练预算与正式配置保持一致，
+# 仅使用用户于 2026-11-01 指定的 CMDP Cost 预算与乘子参数。
+experiment:
+  id: mac_cmdp_local_b040_l008_s030
+  description: "Single-BSS direct-MAC CMDP local run with user-specified costs"
+  topology_template: configs/assets/mac_cmdp_topology40.csv
+  parent_config: configs/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp.yaml
+
+output:
+  root: results/experiments/mac_cmdp_cost_v2_local_seed42_eval66_20261101
+
+traffic:
+  - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 40, assignment: spread}
+  - {name: voip_dl, model: VOIP, direction: DL, ac: VO, count: 20, assignment: spread}
+  - {name: gaming_ul, model: GMG, direction: UL, ac: VI, count: 50, assignment: round_robin}
+  - {name: gaming_dl, model: GMG, direction: DL, ac: VI, count: 30, assignment: spread}
+  - {name: bv3_ul, model: BV3, direction: UL, ac: VI, count: 10, assignment: spread, sta_offset: 2}
+  - {name: http_be_dl, model: HTTP, direction: DL, ac: BE, count: 20, assignment: spread}
+  - {name: ftp_be_ul, model: FTP, direction: UL, ac: BE, count: 12, assignment: spread}
+  - {name: http_bk_dl, model: HTTP, direction: DL, ac: BK, count: 16, assignment: spread}
+  - {name: ftp_bk_ul, model: FTP, direction: UL, ac: BK, count: 8, assignment: spread}
+
+cmdp:
+  utility_weights: {VO: 0.40, VI: 0.40, BE: 0.10, BK: 0.10}
+  delay_reference_ms: {VO: 20.0, VI: 50.0}
+  delay_excess_cap: 3.0
+  minimum_jain: 0.50
+  minimum_satisfaction: {BE: 0.02, BK: 0.005}
+  cost_budgets: {delay: 0.40, loss: 0.08, fairness: 0.0, starvation: 0.30}
+  multiplier_initial: [0.1, 0.15, 0.1, 0.2]
+  multiplier_learning_rate: 0.05
+  multiplier_ema_alpha: 0.2
+  multiplier_maximum: 3.0
+
+simulation:
+  direct_high_watermark: 0
+  evaluation_duration_s: 20
+  training_seeds: [42]
+  evaluation_seeds: [66]
+
+training:
+  parallel_workers: 1
+  stages: 20
+  episode_s: 20.0
+  updates_per_stage: 20
+  epsilon_steps: 450
+  q_lr: 0.0003
+  representation_lr: 0.0001
+  batch_size: 32
+  replay_capacity: 20000
+  warmup: 64
+  discount: 0.98
+  grad_clip: 10.0
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  target_update_mode: soft
+  target_tau: 0.001

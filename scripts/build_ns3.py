@@ -30,6 +30,16 @@ def main() -> None:
     jobs = str(min(16, os.cpu_count() or 8))
     subprocess.run([cmake,"--build",str(root/"cmake-cache"),"--parallel",jobs,"--target",
                     "scratch_tgax-control","scratch_wifi-control","test-runner"],env=env,check=True)
+    # CMake's Windows profile suffix is not present in the configured backend
+    # path.  Refresh the stable executable names after every successful build
+    # so experiments cannot silently run an older binary.
+    if os.name == "nt":
+        for name in ("tgax-control", "wifi-control"):
+            built=root/"build"/"scratch"/f"ns3.44-{name}-relwithdebinfo.exe"
+            stable=root/"build"/"scratch"/f"ns3.44-{name}.exe"
+            if not built.is_file():
+                raise FileNotFoundError(built)
+            shutil.copy2(built,stable)
 
 
 if __name__=="__main__": main()

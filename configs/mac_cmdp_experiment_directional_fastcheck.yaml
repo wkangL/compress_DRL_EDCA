@@ -1,0 +1,67 @@
+# Direction-safe CMDP fast-check configuration.  This is intentionally a
+# 100-step, single-seed gate; it is not a formal multi-seed experiment.
+experiment:
+  id: mac_cmdp_directional_fastcheck
+  description: "Single-BSS directional UL/DL CMDP reward validation"
+  topology_template: configs/assets/mac_cmdp_topology40.csv
+  parent_config: configs/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp.yaml
+
+output:
+  root: results/experiments/mac_cmdp_directional_fastcheck_seed42_eval66_20261101
+
+traffic:
+  - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 40, assignment: spread}
+  - {name: voip_dl, model: VOIP, direction: DL, ac: VO, count: 20, assignment: spread}
+  - {name: gaming_ul, model: GMG, direction: UL, ac: VI, count: 50, assignment: round_robin}
+  - {name: gaming_dl, model: GMG, direction: DL, ac: VI, count: 30, assignment: spread}
+  - {name: bv3_ul, model: BV3, direction: UL, ac: VI, count: 10, assignment: spread, sta_offset: 2}
+  - {name: http_be_dl, model: HTTP, direction: DL, ac: BE, count: 20, assignment: spread}
+  - {name: ftp_be_ul, model: FTP, direction: UL, ac: BE, count: 12, assignment: spread}
+  - {name: http_bk_dl, model: HTTP, direction: DL, ac: BK, count: 16, assignment: spread}
+  - {name: ftp_bk_ul, model: FTP, direction: UL, ac: BK, count: 8, assignment: spread}
+
+cmdp:
+  utility_weights: {VO: 0.40, VI: 0.40, BE: 0.10, BK: 0.10}
+  delay_reference_ms: {VO: 20.0, VI: 50.0}
+  delay_excess_cap: 3.0
+  minimum_jain: 0.50
+  minimum_satisfaction: {BE: 0.02, BK: 0.005}
+  cost_budgets:
+    delay_ul: 0.40
+    delay_dl: 0.40
+    loss_ul: 0.08
+    loss_dl: 0.08
+    fairness: 0.0
+    starvation: 0.30
+  # Order: delay_ul, delay_dl, loss_ul, loss_dl, fairness, starvation.
+  # Split the former delay/loss multipliers across directions so the initial
+  # total penalty scale matches the aggregate four-Cost design.
+  multiplier_initial: [0.05, 0.05, 0.075, 0.075, 0.1, 0.2]
+  multiplier_learning_rate: 0.05
+  multiplier_ema_alpha: 0.2
+  multiplier_maximum: 3.0
+
+simulation:
+  direct_high_watermark: 0
+  evaluation_duration_s: 20
+  training_seeds: [42]
+  evaluation_seeds: [66]
+
+training:
+  parallel_workers: 1
+  # Fast gate: 5 episodes x 20 decisions = 100 environment steps.
+  stages: 5
+  episode_s: 20.0
+  updates_per_stage: 20
+  epsilon_steps: 100
+  q_lr: 0.0003
+  representation_lr: 0.0001
+  batch_size: 32
+  replay_capacity: 20000
+  warmup: 64
+  discount: 0.98
+  grad_clip: 10.0
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  target_update_mode: soft
+  target_tau: 0.001

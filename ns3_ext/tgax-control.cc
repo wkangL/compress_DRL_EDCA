@@ -51,7 +51,10 @@ bool g_interactive{false};
 double g_reportMin{0.1};
 std::ofstream g_cwRuntime;
 std::ofstream g_edcaStepRuntime;
-using ControlTuple = std::tuple<uint32_t, bool, uint32_t, uint32_t, uint32_t, uint32_t>;
+// AP and STA EDCA profiles/custom-growth enable flags may be controlled
+// independently.  The four research CW-growth scalars remain shared.
+using ControlTuple =
+    std::tuple<uint32_t, bool, uint32_t, bool, uint32_t, uint32_t, uint32_t, uint32_t>;
 ControlTuple g_lastControlAction{};
 bool g_hasLastControlAction{false};
 
@@ -1590,16 +1593,20 @@ LoadControlProfiles(const std::string& path)
 void
 ApplyControlAction(std::map<std::string, NodeInfo>& nodes,
                    const std::vector<std::array<EdcaParams, 4>>& profiles,
-                   uint32_t profile,
-                   bool custom,
+                   uint32_t apProfile,
+                   bool apCustom,
+                   uint32_t staProfile,
+                   bool staCustom,
                    uint32_t alpha,
                    uint32_t beta1,
                    uint32_t beta2,
                    uint32_t gamma)
 {
-    NS_ABORT_MSG_IF(profile >= profiles.size() || beta2 < beta1 || alpha > gamma,
+    NS_ABORT_MSG_IF(apProfile >= profiles.size() || staProfile >= profiles.size() ||
+                        beta2 < beta1 || alpha > gamma,
                     "Invalid TGax control action");
-    const ControlTuple requested{profile, custom, alpha, beta1, beta2, gamma};
+    const ControlTuple requested{apProfile, apCustom, staProfile, staCustom,
+                                 alpha, beta1, beta2, gamma};
     const bool actionChanged = !g_hasLastControlAction || requested != g_lastControlAction;
     const std::array<AcIndex, 4> acs{AC_VO, AC_VI, AC_BE, AC_BK};
     for (auto& [label, info] : nodes)
@@ -1610,6 +1617,9 @@ ApplyControlAction(std::map<std::string, NodeInfo>& nodes,
         // state in the MAC.
         if (actionChanged && info.bss == 0)
         {
+            const bool isAp = info.role == "AP";
+            const uint32_t profile = isAp ? apProfile : staProfile;
+            const bool custom = isAp ? apCustom : staCustom;
             for (uint32_t index = 0; index < 4; ++index)
             {
                 const auto& p = profiles[profile][index];
@@ -1626,8 +1636,11 @@ ApplyControlAction(std::map<std::string, NodeInfo>& nodes,
     g_hasLastControlAction = true;
     for (const auto& [label, info] : nodes)
     {
-        const uint32_t appliedProfile = info.bss == 0 ? profile : 0;
-        const bool appliedCustom = info.bss == 0 ? custom : false;
+        const bool isAp = info.role == "AP";
+        const uint32_t requestedProfile = isAp ? apProfile : staProfile;
+        const bool requestedCustom = isAp ? apCustom : staCustom;
+        const uint32_t appliedProfile = info.bss == 0 ? requestedProfile : 0;
+        const bool appliedCustom = info.bss == 0 ? requestedCustom : false;
         for (uint32_t index = 0; index < 4; ++index)
         {
             const auto txop = info.device->GetMac()->GetQosTxop(acs[index]);
@@ -1637,7 +1650,8 @@ ApplyControlAction(std::map<std::string, NodeInfo>& nodes,
                               << ',' << label << ',' << AcName(acs[index]) << ',' << +txop->GetAifsn(0)
                               << ',' << txop->GetMinCw(0) << ',' << txop->GetMaxCw(0) << ','
                               << txop->GetTxopLimit(0).GetMicroSeconds() << ','
-                              << (actionChanged && info.bss == 0) << ',' << profile << ',' << custom << '\n';
+                              << (actionChanged && info.bss == 0) << ',' << requestedProfile << ','
+                              << requestedCustom << '\n';
         }
     }
     g_edcaStepRuntime.flush();
@@ -2109,10 +2123,21 @@ main(int argc, char** argv)
             std::stringstream input(request);
             std::string verb;
             double stepDuration{};
-            uint32_t profile{}, alpha{}, beta1{}, beta2{}, gamma{};
-            bool custom{};
-            input >> verb >> stepDuration >> profile >> custom >> alpha >> beta1 >> beta2 >> gamma;
-            NS_ABORT_MSG_IF(!input || verb != "STEP" || stepDuration <= 0,
+            uint32_t apProfile{}, staProfile{}, alpha{}, beta1{}, beta2{}, gamma{};
+            bool apCustom{}, staCustom{};
+            input >> verb >> stepDuration;
+            if (verb == "STEP")
+            {
+                input >> apProfile >> apCustom >> alpha >> beta1 >> beta2 >> gamma;
+                staProfile = apProfile;
+                staCustom = apCustom;
+            }
+            else if (verb == "STEP2")
+            {
+                input >> apProfile >> apCustom >> staProfile >> staCustom
+                      >> alpha >> beta1 >> beta2 >> gamma;
+            }
+            NS_ABORT_MSG_IF(!input || (verb != "STEP" && verb != "STEP2") || stepDuration <= 0,
                             "Malformed interactive STEP request");
             NS_ABORT_MSG_IF(Simulator::Now().GetSeconds() + stepDuration > g_measureEnd + 1e-9,
                             "STEP exceeds configured measurement duration");
@@ -2152,7 +2177,8 @@ main(int argc, char** argv)
                     staReceivedBefore[item.row.sta] += item.sink->GetTotalRx();
                 }
             }
-            ApplyControlAction(nodes, controlProfiles, profile, custom, alpha, beta1, beta2, gamma);
+            ApplyControlAction(nodes, controlProfiles, apProfile, apCustom, staProfile, staCustom,
+                               alpha, beta1, beta2, gamma);
             // Stop(Time) is a delay from the current simulation time, not an absolute timestamp.
             Simulator::Stop(Seconds(stepDuration));
             Simulator::Run();

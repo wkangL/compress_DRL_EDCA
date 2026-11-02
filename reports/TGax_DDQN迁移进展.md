@@ -213,3 +213,21 @@
 
 报告：`reports/MAC-CMDP三Cost-300步训练与评估.md`；结果与PNG：`results/experiments/mac_cmdp_three_cost_300step_gaming80_40_seed42_eval66_20261102/summary`、`results/experiments/mac_cmdp_three_cost_300step_gaming80_40_seed42_eval66_20261102/figures`。
 
+## 2026-11-02 五方向Cost 100步快速门禁
+
+- 将VO DL、VO UL、VI DL、VI UL拆成四个独立精确QoS Cost，并保留BE/BK饥饿Cost；预算为0.40/0.61/0.49/0.79/0.90。seed42完成100步和40次更新，最后Q-loss 0.00093，Q值及梯度有限。
+- seed66配对评估中，Final相对Default使VO/VI及时率提高78.38%/34.86%、Utility提高30.47%、Jain提高24.08%。VO DL、VO UL和VI UL Cost分别下降17.27%/48.27%/14.13%，均达到预算。
+- VI DL仍失败：Cost 0.5123→0.5755，p95 197.52→330.90 ms，失败率13.88%→17.72%；饥饿Cost仍约1.0。Final的20步全部选择P7，Profile级自适应性不足。
+- seed66未参与模型训练，但参与了预算设计，因此不是完全design-held-out；本轮只能证明独立方向Cost能暴露并保护部分方向，不能证明泛化。
+
+报告：`reports/MAC-CMDP五Cost-100步训练与评估.md`；结果：`results/experiments/mac_cmdp_five_cost_100step_r2_seed42_eval66_20261102`。
+
+## 2026-11-02：AP/STA独立EDCA Profile控制
+
+- 新增`action.profile_application_mode`配置开关：`unified`保留原五分支动作并把同一Profile应用到AP和全部STA；`split_ap_sta`使用`(AP Profile, STA Profile, alpha, beta1, beta2, gamma)`六分支动作。
+- 分离模式只增加STA Profile分支。四个CW增长参数仍共享，业务、STA/AP原始观测、TCN与聚合器、Reward和Cost公式均未改变；当前动作编码由21维增加到38维。
+- 独立Default回退按角色处理：AP或STA任一侧可单独选择P0+原生BEB；只有两侧都回退时四个标量索引才规范化为0。
+- C++持久后端新增向后兼容的`STEP2`协议；旧`STEP`仍保持统一Profile语义。运行时每个节点依据`role`选择AP或STA Profile，BSS范围仍限定为BSS0。
+- 真实ns-3短时门禁使用AP=P3、STA=P8：日志核对1个AP、40个STA、4个AC共164条EDCA记录，AIFSN/CWmin/CWmax/TXOP全部与对应Profile表一致。
+- 完整测试通过：109 passed、7 skipped。本阶段只实现并验证控制能力，未启动新训练。
+

@@ -53,5 +53,20 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(action.tolist(),[[16,0,0,0,0]])
         self.assertEqual(m.action_feature_dim,21)
 
+    def test_split_ap_sta_profiles_add_independent_branch(self) -> None:
+        c=deepcopy(load_config(ROOT/"configs/quick.yaml"))
+        c["action"].update(profile_application_mode="split_ap_sta",profile_branch_size=17,
+                           default_fallback_index=16,default_action=[16,16,0,0,0,0],
+                           alpha=[1,2,3],beta1=[1.6,2.0],beta2=[2.0,2.4,2.8],gamma=[5,6,7])
+        m=ControlNetwork(c,"compressed_async_age",GLOBAL_DIM)
+        self.assertEqual(m.branches,[17,17,3,2,3,3])
+        self.assertEqual(m.action_feature_dim,38)
+        q=[torch.zeros(1,n) for n in m.branches]
+        q[0][0,16]=10; q[1][0,7]=10
+        q[2][0,2]=5; q[3][0,1]=5; q[4][0,2]=5; q[5][0,2]=5
+        self.assertEqual(m.greedy(q).tolist(),[[16,7,2,1,2,2]])
+        q[1].zero_(); q[1][0,16]=10
+        self.assertEqual(m.greedy(q).tolist(),[[16,16,0,0,0,0]])
+
 
 if __name__=="__main__": unittest.main()

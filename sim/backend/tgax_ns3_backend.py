@@ -103,8 +103,16 @@ class TgaxNs3Backend:
     def _exchange(self,action:ControlAction,duration_s:float)->list[Event]:
         if duration_s<=0 or action.beta2<action.beta1: raise ValueError("Invalid TGax action")
         assert self.process.stdin is not None
-        self.process.stdin.write(f"STEP {duration_s} {action.profile} {int(action.custom_growth)} "
-            f"{action.alpha} {round(action.beta1*10)} {round(action.beta2*10)} {action.gamma}\n")
+        if action.sta_profile is None:
+            request=(f"STEP {duration_s} {action.profile} {int(action.custom_growth)} "
+                     f"{action.alpha} {round(action.beta1*10)} {round(action.beta2*10)} {action.gamma}\n")
+        else:
+            sta_custom=(action.custom_growth if action.sta_custom_growth is None
+                        else action.sta_custom_growth)
+            request=(f"STEP2 {duration_s} {action.profile} {int(action.custom_growth)} "
+                     f"{action.sta_profile} {int(sta_custom)} {action.alpha} "
+                     f"{round(action.beta1*10)} {round(action.beta2*10)} {action.gamma}\n")
+        self.process.stdin.write(request)
         self.process.stdin.flush(); result=[]
         while True:
             fields=self._read().strip().split()

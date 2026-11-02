@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 import yaml
@@ -15,12 +16,14 @@ def test_active_yaml_validates_and_covers_all_access_categories():
     assert sum(int(row["count"]) for row in spec["traffic"]) > 0
     assert {row["ac"] for row in spec["traffic"] if int(row["count"]) > 0} == {"VO", "VI", "BE", "BK"}
     assert spec["training"]["parallel_workers"] == 1
-    assert spec["training"]["stages"] * spec["training"]["episode_s"] == 100
+    assert spec["training"]["stages"] * spec["training"]["episode_s"] == 400
     assert spec["simulation"]["training_seeds"] == [42]
     assert spec["simulation"]["evaluation_seeds"] == [66]
     traffic = {row["name"]: int(row["count"]) for row in spec["traffic"]}
-    assert traffic["gaming_ul"] == 80
-    assert traffic["gaming_dl"] == 40
+    assert traffic["voip_ul"] == 20
+    assert traffic["voip_dl"] == 10
+    assert traffic["gaming_ul"] == 30
+    assert traffic["gaming_dl"] == 20
 
 
 def test_all_derived_paths_live_under_one_output_root(tmp_path):
@@ -56,6 +59,17 @@ def test_prepare_emits_only_manual_five_cost_fields(tmp_path):
     assert "delay_excess_cap" not in reward
     assert "minimum_jain" not in reward
     assert "minimum_satisfaction" not in reward
+
+
+def test_prepare_can_enable_split_ap_sta_profile_control(tmp_path):
+    source = ROOT / "configs/mac_cmdp_experiment.yaml"
+    spec = deepcopy(yaml.safe_load(source.read_text(encoding="utf-8")))
+    spec["action"] = {"profile_application_mode": "split_ap_sta"}
+    generated = load_config(prepare(spec, source, paths(spec, tmp_path / "split")))
+    action = generated["action"]
+    assert action["profile_application_mode"] == "split_ap_sta"
+    assert action["default_action"] == [16, 16, 0, 0, 0, 0]
+    assert action["executed_legal_actions"] == 15553
 
 
 def test_immediate_mac_admission_does_not_schedule_polling():

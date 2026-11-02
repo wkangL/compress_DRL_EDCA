@@ -1,0 +1,24 @@
+{
+  "version": "balanced_v2",
+  "source": "configs/profiles_v2_balanced.json",
+  "historical_profiles_preserved": "configs/profiles.json",
+  "profiles": {
+    "P0": "native Default EDCA parameters; custom CW still depends on the scalar branches",
+    "P1": "legacy mild VO/VI profile",
+    "P2": "legacy longer-VO-TXOP profile",
+    "P3": "legacy long VO/VI TXOP profile",
+    "P4": "legacy conservative profile",
+    "P5": "mild BE protection",
+    "P6": "mild BK protection",
+    "P7": "joint mild BE/BK protection",
+    "P8": "medium BE protection",
+    "P9": "strong BE protection",
+    "P10": "medium BK protection",
+    "P11": "strong BK protection",
+    "P12": "joint medium BE/BK protection",
+    "P13": "joint strong BE/BK protection",
+    "P14": "low-priority-biased profile with moderated VO/VI contention",
+    "P15": "emergency BE/BK profile with deliberately restrained VO/VI"
+  },
+  "design_note": "P5-P15 add explicit low-priority service actions. P0 remains bit-for-bit Default. All values satisfy ns-3 EDCA bounds; BE/BK TXOP values are research variants, not IEEE defaults."
+}

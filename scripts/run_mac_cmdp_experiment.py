@@ -29,6 +29,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from project_config import ROOT, load_config
+from sim.edca.profile_table import load_profiles
 
 ACS = ("VO", "VI", "BE", "BK")
 AGGREGATE_COSTS = ("delay", "loss", "fairness", "starvation")
@@ -72,6 +73,16 @@ def validate(spec: dict) -> dict:
     output_root = spec.get("output", {}).get("root")
     if not isinstance(output_root, str) or not output_root.strip():
         raise ValueError("output.root must be a non-empty path")
+    profile_mode=spec.get("action",{}).get("profile_application_mode","unified")
+    if profile_mode not in ("unified","split_ap_sta"):
+        raise ValueError("action.profile_application_mode must be unified or split_ap_sta")
+    profile_path=spec.get("action",{}).get("profiles")
+    if profile_path is not None:
+        candidate=ROOT/str(profile_path)
+        if not candidate.is_file():
+            raise FileNotFoundError(candidate)
+        if len(load_profiles(candidate)) != 16:
+            raise ValueError("action.profiles must contain exactly 16 legal EDCA profiles")
 
     rows = spec.get("traffic")
     if not isinstance(rows, list) or not rows:
@@ -279,6 +290,28 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
     generated["backend"].update(topology=_config_path(p["inputs"] / "topology.csv"),
                                 flows=_config_path(p["inputs"] / "flows.csv"),
                                 direct_high_watermark=int(sim.get("direct_high_watermark", 0)))
+    profile_mode=spec.get("action",{}).get("profile_application_mode","unified")
+    generated["action"]["profile_application_mode"]=profile_mode
+    if spec.get("action",{}).get("profiles") is not None:
+        generated["action"]["profiles"]=_config_path(ROOT/str(spec["action"]["profiles"]))
+    default=list(generated["action"].get("default_action",[0,0,0,0,0]))
+    if profile_mode=="split_ap_sta" and len(default)==5:
+        generated["action"]["default_action"]=[default[0],default[0],*default[1:]]
+    profile_count=int(generated["action"].get("profile_branch_size",16))
+    fallback=generated["action"].get("default_fallback_index")
+    legal_beta=sum(float(b2)>=float(b1) for b1 in generated["action"]["beta1"]
+                   for b2 in generated["action"]["beta2"])
+    scalar_count=(len(generated["action"]["alpha"])*legal_beta*
+                  len(generated["action"]["gamma"]))
+    if fallback is None:
+        generated["action"]["executed_legal_actions"]=(profile_count**(2 if profile_mode=="split_ap_sta" else 1))*scalar_count
+    elif profile_mode=="split_ap_sta":
+        generated["action"]["executed_legal_actions"]=(profile_count*profile_count-1)*scalar_count+1
+        generated["action"]["fallback_semantics"]=(
+            "each profile branch independently maps fallback to P0 plus native BEB; "
+            "scalar indices are canonical zero only when both branches use fallback")
+    else:
+        generated["action"]["executed_legal_actions"]=(profile_count-1)*scalar_count+1
     generated["reward"] = {
         "version": ("tgax_cmdp_five_cost_v6" if cost_names == FIVE_COSTS else
                     "tgax_cmdp_three_cost_v5" if cost_names == THREE_COSTS else

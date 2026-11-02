@@ -43,6 +43,24 @@
 
 第2和第3步只是内部准备，不再要求用户单独运行命令。
 
+## AP与STA的Profile控制方式
+
+在同一个YAML里设置：
+
+```yaml
+action:
+  profile_application_mode: unified
+```
+
+可选值：
+
+- `unified`：保留旧行为，一个Profile同时写入AP和全部40个STA，动作仍为5分支；
+- `split_ap_sta`：AP使用一个Profile分支，全部STA共同使用另一个Profile分支，动作变为6分支。
+
+分离模式只拆分EDCA Profile。`alpha/beta1/beta2/gamma`继续由AP和STA共享；某一侧选择独立Default回退索引时，该侧使用P0与原生BEB，另一侧仍可使用自定义Profile/CW。当前动作编码由21维变为38维（两个17维Profile one-hot加4个标量），因此DDQN输入维度相应增加17维。MAC业务、STA/AP原始观测、TCN压缩、Reward和Cost公式不变。
+
+旧YAML没有该字段时默认为`unified`。模式改变会改变Q网络输入和分支数，必须从随机初始化重新训练，不能加载统一模式的Q网络checkpoint继续训练。
+
 ## Cost阈值不再使用Default标定
 
 Cost阈值直接由YAML中的人工约束确定：
