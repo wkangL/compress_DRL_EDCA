@@ -13,6 +13,8 @@ COST_ORDER = ("delay", "loss", "fairness", "starvation")
 DIRECTIONAL_COST_ORDER = ("delay_ul", "delay_dl", "loss_ul", "loss_dl",
                           "fairness", "starvation")
 TWO_COST_ORDER = ("qos", "starvation")
+THREE_COST_ORDER = ("qos_avg", "qos_max", "starvation")
+FIVE_COST_ORDER = ("qos_vo_dl", "qos_vo_ul", "qos_vi_dl", "qos_vi_ul", "starvation")
 AC_NAMES = ("vo", "vi", "be", "bk")
 
 
@@ -227,6 +229,95 @@ def two_cost_cmdp_components(metrics: dict, config: dict) -> tuple[float, np.nda
         raise FloatingPointError("Two-Cost CMDP costs must be finite values in [0,1]")
     parts.update(cost_order=list(TWO_COST_ORDER), cost_valid=valid.tolist(),
                  cost_qos=qos_cost, cost_starvation=starvation_cost,
+                 starvation_active_acs=[AC_NAMES[index] for index in low_indices])
+    return utility, costs, parts
+
+
+def three_cost_cmdp_components(metrics: dict, config: dict) -> tuple[float, np.ndarray, dict]:
+    """Average/worst-direction QoS plus worst active BE/BK starvation."""
+    utility, satisfaction, active = _utility(metrics, config)
+    groups: list[float] = []
+    parts: dict[str, object] = {
+        "utility": utility,
+        **{f"satisfaction_{ac}": float(satisfaction[i]) for i, ac in enumerate(AC_NAMES)},
+    }
+    for ac in ("vo", "vi"):
+        for direction in ("ul", "dl"):
+            name = f"qos_{ac}_{direction}"
+            valid = bool(metrics.get(f"{name}_valid", False))
+            value = metrics.get(name)
+            if valid:
+                value = float(value)
+                if not np.isfinite(value) or not 0 <= value <= 1:
+                    raise ValueError(f"{name} must lie in [0,1]")
+                groups.append(value)
+            else:
+                value = None
+            parts.update({name: value, f"{name}_valid": valid,
+                          f"{name}_finalized": int(metrics.get(f"{name}_finalized", 0)),
+                          f"{name}_pending_end": int(metrics.get(f"{name}_pending_end", 0))})
+    qos_valid = bool(groups)
+    qos_avg = float(np.mean(groups)) if qos_valid else 0.0
+    qos_max = float(np.max(groups)) if qos_valid else 0.0
+    low_indices = [index for index in (2, 3) if active[index]]
+    starvation_valid = bool(low_indices)
+    starvation_cost = (1.0 - float(min(satisfaction[index] for index in low_indices))
+                       if starvation_valid else 0.0)
+    costs = np.asarray([qos_avg, qos_max, starvation_cost], dtype=np.float64)
+    valid = np.asarray([qos_valid, qos_valid, starvation_valid], dtype=bool)
+    if not np.isfinite(costs).all() or ((costs < 0) | (costs > 1)).any():
+        raise FloatingPointError("Three-Cost CMDP costs must be finite values in [0,1]")
+    parts.update(cost_order=list(THREE_COST_ORDER), cost_valid=valid.tolist(),
+                 cost_qos_avg=qos_avg, cost_qos_max=qos_max,
+                 cost_starvation=starvation_cost,
+                 starvation_active_acs=[AC_NAMES[index] for index in low_indices])
+    return utility, costs, parts
+
+
+def five_cost_cmdp_components(metrics: dict, config: dict) -> tuple[float, np.ndarray, dict]:
+    """Keep every VO/VI direction as an independent exact QoS constraint.
+
+    This prevents a strong UL direction from compensating for a degraded DL
+    direction (or vice versa).  Invalid groups retain a zero placeholder and
+    are masked out of both the episode multiplier update and its EMA.
+    """
+    utility, satisfaction, active = _utility(metrics, config)
+    values: list[float] = []
+    valid_mask: list[bool] = []
+    parts: dict[str, object] = {
+        "utility": utility,
+        **{f"satisfaction_{ac}": float(satisfaction[i]) for i, ac in enumerate(AC_NAMES)},
+    }
+    for name in FIVE_COST_ORDER[:-1]:
+        valid = bool(metrics.get(f"{name}_valid", False))
+        value = metrics.get(name)
+        if valid:
+            value = float(value)
+            if not np.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError(f"{name} must lie in [0,1]")
+            values.append(value)
+        else:
+            value = None
+            values.append(0.0)
+        valid_mask.append(valid)
+        parts.update({name: value, f"{name}_valid": valid,
+                      f"{name}_finalized": int(metrics.get(f"{name}_finalized", 0)),
+                      f"{name}_pending_end": int(metrics.get(f"{name}_pending_end", 0))})
+
+    low_indices = [index for index in (2, 3) if active[index]]
+    starvation_valid = bool(low_indices)
+    starvation_cost = (1.0 - float(min(satisfaction[index] for index in low_indices))
+                       if starvation_valid else 0.0)
+    values.append(starvation_cost)
+    valid_mask.append(starvation_valid)
+    costs = np.asarray(values, dtype=np.float64)
+    valid = np.asarray(valid_mask, dtype=bool)
+    if costs.shape != (5,) or not np.isfinite(costs).all() or ((costs < 0) | (costs > 1)).any():
+        raise FloatingPointError("Five-Cost CMDP costs must be finite values in [0,1]")
+    parts.update(cost_order=list(FIVE_COST_ORDER), cost_valid=valid.tolist(),
+                 cost_qos_vo_dl=float(costs[0]), cost_qos_vo_ul=float(costs[1]),
+                 cost_qos_vi_dl=float(costs[2]), cost_qos_vi_ul=float(costs[3]),
+                 cost_starvation=float(costs[4]),
                  starvation_active_acs=[AC_NAMES[index] for index in low_indices])
     return utility, costs, parts
 

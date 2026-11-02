@@ -185,3 +185,31 @@
 
 正式报告：`reports/单BSS新业务配置-CMDP-TCN-DDQN三seed训练报告.md`；原始结果：`results/raw/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp_600step_3seed_20261030`；汇总与PNG：`results/summary/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp_600step_3seed_20261030`、`results/figures/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp_600step_3seed_20261030`。
 
+## 2026-11-01 两Cost Reward 100步门禁与独立评估
+
+- seed42完成100个环境步、40次更新后按用户决定停止，不继续额外100步。Q-loss的连续10-update均值由0.03355降至0.00315，最终Q值0.287--0.521、梯度范数0.0164，无数值发散。
+- 使用未参与训练的seed66完成20秒Default/final配对评估。Final相对Default：Reward +54.69%、Utility +31.35%、VO/VI及时率分别由42.91%/19.31%升至75.35%/28.64%，Jain由0.4778升至0.5330。
+- UL-VO p95由204.56 ms降至48.10 ms；但DL-VI p95由196.44 ms恶化至345.45 ms，失败率由6.72%升至13.66%。QoS Cost 0.472>0.40预算，饥饿Cost约1.0>0.90预算，BE/BK满足度仅1.16%/0.42%，因此尚不是满足约束的最终策略。
+- 独立评估全部选择Profile 7，仅gamma分支变化，状态自适应性有限。当前结论仅基于一个独立seed，应在解决DL-VI与低优先级不可行问题后再做多seed复核。
+
+报告：`reports/MAC-CMDP两Cost-100步诊断与评估.md`；结果与PNG：`results/experiments/mac_cmdp_two_cost_fast_seed42_eval66_20261101/summary`、`results/experiments/mac_cmdp_two_cost_fast_seed42_eval66_20261101/figures`。
+
+## 2026-11-02 三Cost Reward 100步训练与独立评估
+
+- 新增最大方向QoS Cost，形成`qos_avg/qos_max/starvation`三个独立约束，预算0.40/0.65/0.90。首轮v5因未进入精确QoS账本门控而无效，已保留并标注`INVALID_RUN.md`；修复版r2从随机初始化重跑。
+- 修复版真实ns-3门禁和训练日志确认`Q_max>=Q_avg>0`，三个lambda均按预算违反更新。100步完成40次梯度更新，Q-loss连续10-update均值由0.02038降至0.00282，Q值和梯度稳定。
+- seed66独立配对中，Final相对Default：Utility +31.35%，Q_avg下降18.85%，Q_max下降15.25%，VO/VI及时率分别由42.91%/19.31%升至75.35%/28.64%，Jain由0.4778升至0.5330。
+- 仍不满足可行性：Final的Q_avg 0.472>0.40、Q_max 0.700>0.65、Starvation约1.0>0.90；DL-VI p95由196.44 ms恶化至345.45 ms，失败率由6.72%升至13.66%。策略20步均选择Profile 7，仅gamma少量变化。
+
+报告：`reports/MAC-CMDP三Cost-100步训练与评估.md`；结果：`results/experiments/mac_cmdp_three_cost_fast_r2_seed42_eval66_20261101`。
+
+## 2026-11-02 三Cost Reward 300步训练与独立评估
+
+- seed42从随机初始化完成10个30秒episode、300个环境步和240次梯度更新；最终checkpoint仅在未见seed66上进行20秒Default/Final配对评估。Q-loss最终约0.00202，Q值和梯度有限，无NaN/Inf或数值爆炸。
+- Final相对Default：Reward +129.98%、Utility +42.01%、VO/VI及时率分别提高10.79%/76.61%，Jain提高25.53%；平均/最大方向QoS Cost分别下降9.87%/22.33%。
+- 主要收益在上行：UL-VO p95下降30.53%、失败率由11.99%降至0.49%；UL-VI吞吐提高71.84%、失败率由39.72%降至13.11%。
+- 仍有明确退化：DL-VO p95由46.95 ms升至102.21 ms，DL-VI p95由197.52 ms升至237.44 ms。BK仍零交付，饥饿Cost保持1.0。
+- Final仅满足最大方向Cost预算（0.6435≤0.65）；平均Cost 0.5425>0.40、饥饿Cost 1.0>0.90，因此不是满足全部CMDP约束的可行策略。结论仅来自一个训练seed和一个评估seed，不能宣称多seed稳定优于Default。
+
+报告：`reports/MAC-CMDP三Cost-300步训练与评估.md`；结果与PNG：`results/experiments/mac_cmdp_three_cost_300step_gaming80_40_seed42_eval66_20261102/summary`、`results/experiments/mac_cmdp_three_cost_300step_gaming80_40_seed42_eval66_20261102/figures`。
+

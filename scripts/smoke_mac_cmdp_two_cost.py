@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Two-STEP ns-3 smoke gate for the exact two-Cost CMDP ledger."""
+"""Two-STEP ns-3 smoke gate for the configured exact-QoS CMDP ledger."""
 from __future__ import annotations
 
 import json
@@ -15,7 +15,7 @@ from scripts.run_mac_cmdp_experiment import paths, prepare, read_yaml, validate
 
 
 SOURCE = ROOT / "configs/mac_cmdp_experiment.yaml"
-OUTPUT = ROOT / "results/raw/mac_cmdp_two_cost_smoke_r2_20261101"
+OUTPUT = ROOT / "results/raw/mac_cmdp_five_cost_smoke_20261102"
 
 
 def main() -> None:
@@ -34,13 +34,18 @@ def main() -> None:
         for step in range(2):
             observation, reward, metrics = env.step(action, 1.0, custom=False)
             costs = np.asarray(metrics["cmdp_costs"], dtype=float)
-            assert costs.shape == (2,) and np.isfinite(costs).all()
-            assert metrics["cmdp_cost_order"] == ["qos", "starvation"]
+            assert costs.shape == (5,) and np.isfinite(costs).all()
+            assert metrics["cmdp_cost_order"] == ["qos_vo_dl", "qos_vo_ul", "qos_vi_dl", "qos_vi_ul", "starvation"]
+            assert metrics["cmdp_cost_valid"][:4] == [True, True, True, True]
+            assert (costs[:4] > 0.0).all()
             records.append({
                 "step": step + 1,
                 "utility": metrics["cmdp_utility"],
-                "qos_cost": costs[0],
-                "starvation_cost": costs[1],
+                "qos_vo_dl_cost": costs[0],
+                "qos_vo_ul_cost": costs[1],
+                "qos_vi_dl_cost": costs[2],
+                "qos_vi_ul_cost": costs[3],
+                "starvation_cost": costs[4],
                 "cost_valid": metrics["cmdp_cost_valid"],
                 "qos_vo_ul": metrics["cmdp_qos_vo_ul"],
                 "qos_vo_dl": metrics["cmdp_qos_vo_dl"],

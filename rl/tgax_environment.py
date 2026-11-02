@@ -11,12 +11,13 @@ from sim.backend.tgax_ns3_backend import TgaxNs3Backend
 from sim.statistics.ap_state import age_statistics
 from rl.tgax_reward import tgax_reward
 from rl.cmdp_reward import (LagrangeController, cmdp_components, directional_cmdp_components,
-                            completed_qos_increment, lagrangian_reward, legacy_cmdp_components_v1,
-                            two_cost_cmdp_components)
+                            completed_qos_increment, five_cost_cmdp_components, lagrangian_reward, legacy_cmdp_components_v1,
+                            three_cost_cmdp_components, two_cost_cmdp_components)
 
 
 CMDP_VERSIONS = {"tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                 "tgax_cmdp_two_cost_v4"}
+                 "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6"}
+EXACT_QOS_VERSIONS = {"tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6"}
 
 
 class TgaxControlEnvironment:
@@ -151,7 +152,7 @@ class TgaxControlEnvironment:
                     f"{dname}_{name}_delay_valid":bool(samples),
                     f"{dname}_{name}_final_failure_rate":failed/max(pstart+arrived,1),
                     f"{dname}_{name}_retransmission_rate":retries/max(attempts,1)})
-                if self.config["reward"].get("version") == "tgax_cmdp_two_cost_v4" and ac < 2:
+                if self.config["reward"].get("version") in EXACT_QOS_VERSIONS and ac < 2:
                     if len(samples) != acked:
                         raise RuntimeError(f"ACK/delay sample mismatch {dname}/{name}: {acked} vs {len(samples)}")
                     reference=float(self.config["reward"]["qos_delay_reference_ms"][ac])
@@ -177,7 +178,9 @@ class TgaxControlEnvironment:
         if reward_version in CMDP_VERSIONS:
             component_fn = ({"tgax_cmdp_v2": cmdp_components,
                              "tgax_cmdp_directional_v3": directional_cmdp_components,
-                             "tgax_cmdp_two_cost_v4": two_cost_cmdp_components}
+                             "tgax_cmdp_two_cost_v4": two_cost_cmdp_components,
+                             "tgax_cmdp_three_cost_v5": three_cost_cmdp_components,
+                             "tgax_cmdp_five_cost_v6": five_cost_cmdp_components}
                             .get(reward_version, legacy_cmdp_components_v1))
             utility,costs,parts=component_fn(metrics,self.config["reward"])
             value=(utility if self.lagrange is None else

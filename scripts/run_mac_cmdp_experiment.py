@@ -34,6 +34,8 @@ ACS = ("VO", "VI", "BE", "BK")
 AGGREGATE_COSTS = ("delay", "loss", "fairness", "starvation")
 DIRECTIONAL_COSTS = ("delay_ul", "delay_dl", "loss_ul", "loss_dl", "fairness", "starvation")
 TWO_COSTS = ("qos", "starvation")
+THREE_COSTS = ("qos_avg", "qos_max", "starvation")
+FIVE_COSTS = ("qos_vo_dl", "qos_vo_ul", "qos_vi_dl", "qos_vi_ul", "starvation")
 MODELS = {"VOIP", "GMG", "BV3", "BV6", "HTTP", "FTP", "HTTP_REQ"}
 REFERENCE_TRANSPORT = {"VOIP": "UDP", "GMG": "UDP", "BV3": "TCP", "BV6": "TCP",
                        "HTTP": "TCP", "FTP": "TCP", "HTTP_REQ": "TCP"}
@@ -102,22 +104,23 @@ def validate(spec: dict) -> dict:
     if set(weights) != set(ACS) or abs(sum(float(weights[a]) for a in ACS) - 1.0) > 1e-12:
         raise ValueError("cmdp.utility_weights must contain VO/VI/BE/BK and sum to one")
     budgets = cmdp.get("cost_budgets", {})
-    if set(budgets) == set(TWO_COSTS):
-        cost_names = TWO_COSTS
+    if set(budgets) in (set(TWO_COSTS), set(THREE_COSTS), set(FIVE_COSTS)):
+        cost_names = (FIVE_COSTS if set(budgets) == set(FIVE_COSTS) else
+                      THREE_COSTS if set(budgets) == set(THREE_COSTS) else TWO_COSTS)
         references = cmdp.get("qos_delay_reference_ms", {})
         if set(references) != {"VO", "VI"} or any(float(references[ac]) <= 0 for ac in ("VO", "VI")):
             raise ValueError("cmdp.qos_delay_reference_ms must contain positive VO and VI values")
         obsolete = {"delay_reference_ms", "delay_excess_cap", "minimum_jain", "minimum_satisfaction"}
         present = sorted(obsolete & set(cmdp))
         if present:
-            raise ValueError(f"Two-Cost CMDP contains obsolete fields: {present}")
+            raise ValueError(f"QoS CMDP contains obsolete fields: {present}")
     elif set(budgets) == set(AGGREGATE_COSTS):
         cost_names = AGGREGATE_COSTS
     elif set(budgets) == set(DIRECTIONAL_COSTS):
         cost_names = DIRECTIONAL_COSTS
     else:
-        raise ValueError("cmdp.cost_budgets must use aggregate, directional, or qos/starvation names")
-    if cost_names != TWO_COSTS:
+        raise ValueError("cmdp.cost_budgets must use aggregate, directional, two-Cost, three-Cost, or five-Cost names")
+    if cost_names not in (TWO_COSTS, THREE_COSTS, FIVE_COSTS):
         references = cmdp.get("delay_reference_ms", {})
         if set(references) != {"VO", "VI"} or any(float(references[ac]) <= 0 for ac in ("VO", "VI")):
             raise ValueError("cmdp.delay_reference_ms must contain positive VO and VI values")
@@ -262,7 +265,9 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
     cmdp, sim, train = spec["cmdp"], spec["simulation"], spec["training"]
     weights = cmdp["utility_weights"]
     budget_keys=set(cmdp["cost_budgets"])
-    cost_names = (TWO_COSTS if budget_keys == set(TWO_COSTS) else
+    cost_names = (FIVE_COSTS if budget_keys == set(FIVE_COSTS) else
+                   THREE_COSTS if budget_keys == set(THREE_COSTS) else
+                  TWO_COSTS if budget_keys == set(TWO_COSTS) else
                   DIRECTIONAL_COSTS if budget_keys == set(DIRECTIONAL_COSTS) else AGGREGATE_COSTS)
     budgets = [float(cmdp["cost_budgets"][name]) for name in cost_names]
     parent_path = ROOT / spec["experiment"]["parent_config"]
@@ -275,7 +280,9 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
                                 flows=_config_path(p["inputs"] / "flows.csv"),
                                 direct_high_watermark=int(sim.get("direct_high_watermark", 0)))
     generated["reward"] = {
-        "version": ("tgax_cmdp_two_cost_v4" if cost_names == TWO_COSTS else
+        "version": ("tgax_cmdp_five_cost_v6" if cost_names == FIVE_COSTS else
+                    "tgax_cmdp_three_cost_v5" if cost_names == THREE_COSTS else
+                    "tgax_cmdp_two_cost_v4" if cost_names == TWO_COSTS else
                     "tgax_cmdp_directional_v3" if cost_names == DIRECTIONAL_COSTS else "tgax_cmdp_v2"),
         "cost_order": list(cost_names),
         "utility_weights": [float(weights[a]) for a in ACS],
@@ -285,7 +292,7 @@ def prepare(spec: dict, source_yaml: Path, p: dict[str, Path]) -> Path:
         "multiplier_learning_rate": float(cmdp["multiplier_learning_rate"]),
         "multiplier_ema_alpha": float(cmdp["multiplier_ema_alpha"]),
         "multiplier_maximum": float(cmdp["multiplier_maximum"])}
-    if cost_names == TWO_COSTS:
+    if cost_names in (TWO_COSTS, THREE_COSTS, FIVE_COSTS):
         generated["reward"].update(
             qos_delay_reference_ms=[float(cmdp["qos_delay_reference_ms"]["VO"]),
                                     float(cmdp["qos_delay_reference_ms"]["VI"])],

@@ -5,8 +5,10 @@ import numpy as np
 
 from rl.cmdp_reward import (COST_ORDER, DIRECTIONAL_COST_ORDER, LagrangeController,
                             cmdp_components, completed_qos_increment, directional_cmdp_components, lagrangian_reward,
-                            qos_mpdu_cost, two_cost_cmdp_components)
+                            five_cost_cmdp_components, qos_mpdu_cost, three_cost_cmdp_components,
+                            two_cost_cmdp_components)
 from rl.replay_buffer import Transition
+from rl.tgax_environment import EXACT_QOS_VERSIONS
 
 
 CONFIG = {
@@ -16,6 +18,11 @@ CONFIG = {
     "minimum_jain": 0.5,
     "minimum_satisfaction": [0.02, 0.005],
 }
+
+
+def test_exact_qos_ledger_is_enabled_for_all_exact_cost_versions():
+    assert EXACT_QOS_VERSIONS == {"tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5",
+                                  "tgax_cmdp_five_cost_v6"}
 
 
 def sample(**updates):
@@ -261,3 +268,38 @@ def test_two_cost_multiplier_and_replay_recombine_current_lambda():
     second = lagrangian_reward(transition.utility, transition.costs,
                                [0.4, 0.9], [1.0, 1.0])
     assert second < first < transition.utility
+
+
+def test_three_cost_preserves_average_and_worst_direction():
+    metrics = two_cost_sample(qos_vo_ul=0.1, qos_vo_dl=0.9,
+                              qos_vi_ul=0.2, qos_vi_dl=0.4)
+    _, costs, parts = three_cost_cmdp_components(metrics, CONFIG)
+    assert np.allclose(costs, [0.4, 0.9, 0.995])
+    assert parts["cost_order"] == ["qos_avg", "qos_max", "starvation"]
+    assert parts["cost_qos_avg"] == 0.4
+    assert parts["cost_qos_max"] == 0.9
+
+
+def test_three_cost_missing_direction_uses_same_valid_mask_for_avg_and_max():
+    metrics = two_cost_sample(qos_vo_ul=0.1, qos_vo_dl=None,
+                              qos_vo_dl_valid=False, qos_vi_ul=0.2, qos_vi_dl=0.4)
+    _, costs, parts = three_cost_cmdp_components(metrics, CONFIG)
+    assert np.allclose(costs[:2], [np.mean([0.1, 0.2, 0.4]), 0.4])
+    assert parts["cost_valid"] == [True, True, True]
+
+
+def test_five_cost_keeps_each_direction_independent_and_ordered():
+    metrics = two_cost_sample(qos_vo_dl=0.9, qos_vo_ul=0.1,
+                              qos_vi_dl=0.4, qos_vi_ul=0.2)
+    _, costs, parts = five_cost_cmdp_components(metrics, CONFIG)
+    assert np.allclose(costs, [0.9, 0.1, 0.4, 0.2, 0.995])
+    assert parts["cost_order"] == ["qos_vo_dl", "qos_vo_ul", "qos_vi_dl", "qos_vi_ul", "starvation"]
+    assert parts["cost_valid"] == [True, True, True, True, True]
+
+
+def test_five_cost_masks_only_the_missing_direction():
+    metrics = two_cost_sample(qos_vo_dl=None, qos_vo_dl_valid=False,
+                              qos_vo_ul=0.1, qos_vi_dl=0.4, qos_vi_ul=0.2)
+    _, costs, parts = five_cost_cmdp_components(metrics, CONFIG)
+    assert np.allclose(costs, [0.0, 0.1, 0.4, 0.2, 0.995])
+    assert parts["cost_valid"] == [False, True, True, True, True]

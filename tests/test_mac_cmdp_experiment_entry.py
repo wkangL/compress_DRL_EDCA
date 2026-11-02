@@ -18,6 +18,9 @@ def test_active_yaml_validates_and_covers_all_access_categories():
     assert spec["training"]["stages"] * spec["training"]["episode_s"] == 100
     assert spec["simulation"]["training_seeds"] == [42]
     assert spec["simulation"]["evaluation_seeds"] == [66]
+    traffic = {row["name"]: int(row["count"]) for row in spec["traffic"]}
+    assert traffic["gaming_ul"] == 80
+    assert traffic["gaming_dl"] == 40
 
 
 def test_all_derived_paths_live_under_one_output_root(tmp_path):
@@ -36,15 +39,15 @@ def test_assignment_modes_are_deterministic_and_bounded():
     assert [assigned_sta(explicit, i, 4) for i in range(4)] == [3, 9, 3, 9]
 
 
-def test_prepare_emits_only_manual_two_cost_fields(tmp_path):
+def test_prepare_emits_only_manual_five_cost_fields(tmp_path):
     source = ROOT / "configs/mac_cmdp_experiment.yaml"
     spec = yaml.safe_load(source.read_text(encoding="utf-8"))
     generated_path = prepare(spec, source, paths(spec, tmp_path / "experiment"))
     reward = load_config(generated_path)["reward"]
-    assert reward["version"] == "tgax_cmdp_two_cost_v4"
-    assert reward["cost_order"] == ["qos", "starvation"]
-    assert reward["budgets"] == [0.40, 0.90]
-    assert reward["multiplier_initial"] == [0.1, 0.1]
+    assert reward["version"] == "tgax_cmdp_five_cost_v6"
+    assert reward["cost_order"] == ["qos_vo_dl", "qos_vo_ul", "qos_vi_dl", "qos_vi_ul", "starvation"]
+    assert reward["budgets"] == [0.40, 0.61, 0.49, 0.79, 0.90]
+    assert reward["multiplier_initial"] == [0.1] * 5
     assert reward["qos_delay_reference_ms"] == [20.0, 50.0]
     assert reward["budget_status"] == "manual; no Default calibration"
     assert "low_priority_cost_budget" not in reward

@@ -253,7 +253,7 @@ def main() -> None:
     tc = config["training"]
     cmdp_version=config["reward"].get("version")
     is_cmdp=cmdp_version in ("tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                            "tgax_cmdp_two_cost_v4")
+                             "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6")
     lagrange=None
     if is_cmdp:
         if config["reward"].get("budgets") is None:
@@ -355,7 +355,8 @@ def main() -> None:
                         episode_costs.append(np.asarray(metrics["cmdp_costs"],dtype=float))
                         episode_utilities.append(float(metrics["cmdp_utility"]))
                         if cmdp_version in ("tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                                            "tgax_cmdp_two_cost_v4"):
+                                            "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5",
+                                            "tgax_cmdp_five_cost_v6"):
                             episode_cost_valid.append(np.asarray(metrics["cmdp_cost_valid"], dtype=bool))
                         else:
                             episode_cost_valid.append(np.asarray([
@@ -386,7 +387,8 @@ def main() -> None:
                     if is_cmdp:
                         cost_names = (tuple(config["reward"]["cost_order"])
                                       if cmdp_version in ("tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                                                          "tgax_cmdp_two_cost_v4")
+                                                          "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5",
+                                                          "tgax_cmdp_five_cost_v6")
                                       else ("vo", "vi", "jain", "low"))
                         stats.update(**{f"lambda_{name}":float(lagrange.multipliers[i])
                             for i,name in enumerate(cost_names)})

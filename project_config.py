@@ -57,20 +57,23 @@ def validate_config(c: dict) -> None:
     reward=c["reward"]; version=reward.get("version","v1")
     if version not in ("v1","v2","v2_service","tgax_v1","tgax_v2_service_guard","tgax_reward_v3",
                        "tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                       "tgax_cmdp_two_cost_v4"):
+                       "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6"):
         raise ValueError("unsupported reward.version")
-    if version == "tgax_cmdp_two_cost_v4":
+    if version in ("tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5", "tgax_cmdp_five_cost_v6"):
         weights=reward.get("utility_weights",[])
         references=reward.get("qos_delay_reference_ms",[])
         budgets=reward.get("budgets",[])
-        if reward.get("cost_order") != ["qos", "starvation"]:
-            raise ValueError("Two-Cost CMDP order must be qos/starvation")
+        expected_order = (["qos", "starvation"] if version == "tgax_cmdp_two_cost_v4" else
+                          ["qos_avg", "qos_max", "starvation"] if version == "tgax_cmdp_three_cost_v5" else
+                          ["qos_vo_dl", "qos_vo_ul", "qos_vi_dl", "qos_vi_ul", "starvation"])
+        if reward.get("cost_order") != expected_order:
+            raise ValueError(f"{version} cost order is invalid")
         if len(weights)!=4 or any(value<0 for value in weights) or abs(sum(weights)-1.0)>1e-12:
             raise ValueError("Two-Cost CMDP utility weights must sum to one")
         if len(references)!=2 or any(value<=0 for value in references):
             raise ValueError("Two-Cost CMDP QoS references must contain positive VO/VI values")
-        if len(budgets)!=2 or any(not 0<=value<=1 for value in budgets):
-            raise ValueError("Two-Cost CMDP budgets must contain qos/starvation values in [0,1]")
+        if len(budgets)!=len(expected_order) or any(not 0<=value<=1 for value in budgets):
+            raise ValueError(f"{version} budgets must contain {len(expected_order)} values in [0,1]")
         required=()
     elif version in ("tgax_cmdp_v2", "tgax_cmdp_directional_v3"):
         weights=reward.get("utility_weights",[])
@@ -118,7 +121,7 @@ def validate_config(c: dict) -> None:
     if version in ("v2_service","tgax_v2_service_guard") and (reward["low_priority"]<=0 or not 0<reward["low_priority_service_floor"]<=1):
         raise ValueError(f"{version} requires a positive low-priority weight and a service floor in (0,1]")
     if version in ("tgax_cmdp_v1", "tgax_cmdp_v2", "tgax_cmdp_directional_v3",
-                   "tgax_cmdp_two_cost_v4") and reward.get("budgets") is not None:
+                   "tgax_cmdp_two_cost_v4", "tgax_cmdp_three_cost_v5") and reward.get("budgets") is not None:
         initial=reward.get("multiplier_initial",[])
         if len(initial)!=len(reward["budgets"]) or any(not math.isfinite(value) or value<0 for value in initial):
             raise ValueError("TGax CMDP requires one finite non-negative multiplier per cost")
