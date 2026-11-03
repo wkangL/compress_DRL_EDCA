@@ -231,3 +231,19 @@
 - 真实ns-3短时门禁使用AP=P3、STA=P8：日志核对1个AP、40个STA、4个AC共164条EDCA记录，AIFSN/CWmin/CWmax/TXOP全部与对应Profile表一致。
 - 完整测试通过：109 passed、7 skipped。本阶段只实现并验证控制能力，未启动新训练。
 
+# 2026-11-03：平衡版 Profile、AP/STA 分离 400 步实验完成
+
+- seed 42 已完成 400 步训练和 340 次梯度更新；未发现 NaN、Inf、Q 值或梯度爆炸。
+- final checkpoint 已在 seed 66 上完成 40 s Default/Final 配对评价。
+- Final 相对 Default：VO/VI 及时率分别提高 21.99%/87.32%，VI 吞吐提高 18.50%，Jain 公平性提高 13.59%。
+- VO-UL、VI-UL、VI-DL p95 改善，但 VO-DL p95 从 36.51 ms 上升至 46.07 ms。
+- BE/BK 成功服务有所增加，但绝对样本仍极少，不能宣称低优先级饥饿已解决。
+- 新版 CSV、PNG、AP/STA Profile 分布和报告已生成；项目测试为 112 passed、7 skipped。
+
+## 2026-11-03：零水位MAC直注FTP/HTTP持续会话修复
+
+- 定位到`direct_high_watermark=0`禁用准入轮询后，FTP/HTTP下一会话调度仍错误依赖`AdmissionTick()`，导致两类业务仅生成首次文件/页面。
+- 将下一会话安排拆为独立`ScheduleNextBulkSession()`：零水位模式在MSDU同步提交原生MAC队列后直接安排阅读间隔；非零水位历史模式仍在应用pending排空后安排。
+- 未恢复应用轮询或64包水位，未修改业务分布、EDCA、Reward/Cost或网络结构。
+- C++后端已重新编译；项目测试更新为113 passed、7 skipped。历史400步实验保留，但其BE/BK负载结论应视为修复前结果。
+

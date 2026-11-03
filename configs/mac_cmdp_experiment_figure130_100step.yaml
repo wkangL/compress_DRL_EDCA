@@ -1,0 +1,56 @@
+# 图示130条业务：修复后FTP/HTTP持续会话，100步快速重新训练。
+experiment:
+  id: mac_cmdp_figure130_balanced_split_100step
+  description: "Single-BSS 40-STA figure-defined traffic, split AP/STA balanced profiles, five-Cost CMDP, 100 steps"
+  topology_template: configs/assets/mac_cmdp_topology40.csv
+  parent_config: configs/mac_arrival40_voip40_20_gaming80_40_bv3ul10_cmdp.yaml
+
+output:
+  root: results/experiments/mac_cmdp_figure130_balanced_split_100step_seed42_eval66_20261103
+
+action:
+  profile_application_mode: split_ap_sta
+  profiles: configs/profiles_v2_balanced.json
+
+# 图示业务。HTTP只作为BE下行，FTP只作为BK上行。
+traffic:
+  - {name: voip_ul, model: VOIP, direction: UL, ac: VO, count: 20, assignment: spread}
+  - {name: voip_dl, model: VOIP, direction: DL, ac: VO, count: 10, assignment: spread}
+  - {name: bv3_ul, model: BV3, direction: UL, ac: VI, count: 10, assignment: spread, sta_offset: 2}
+  - {name: gaming_ul, model: GMG, direction: UL, ac: VI, count: 20, assignment: round_robin}
+  - {name: gaming_dl, model: GMG, direction: DL, ac: VI, count: 30, assignment: spread}
+  - {name: http_be_dl, model: HTTP, direction: DL, ac: BE, count: 20, assignment: spread}
+  - {name: ftp_bk_ul, model: FTP, direction: UL, ac: BK, count: 20, assignment: spread}
+
+cmdp:
+  utility_weights: {VO: 0.40, VI: 0.40, BE: 0.10, BK: 0.10}
+  qos_delay_reference_ms: {VO: 20.0, VI: 50.0}
+  cost_budgets: {qos_vo_dl: 0.40, qos_vo_ul: 0.61, qos_vi_dl: 0.49, qos_vi_ul: 0.79, starvation: 0.90}
+  multiplier_initial: [0.1, 0.1, 0.1, 0.1, 0.1]
+  multiplier_learning_rate: 0.01
+  multiplier_ema_alpha: 0.2
+  multiplier_maximum: 3.0
+
+simulation:
+  direct_high_watermark: 0
+  evaluation_duration_s: 20
+  training_seeds: [42]
+  evaluation_seeds: [66]
+
+training:
+  parallel_workers: 1
+  stages: 10
+  episode_s: 10.0
+  updates_per_stage: 10
+  epsilon_steps: 100
+  q_lr: 0.0003
+  representation_lr: 0.0001
+  batch_size: 32
+  replay_capacity: 20000
+  warmup: 64
+  discount: 0.98
+  grad_clip: 10.0
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  target_update_mode: soft
+  target_tau: 0.001

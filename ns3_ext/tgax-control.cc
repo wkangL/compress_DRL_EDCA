@@ -931,6 +931,14 @@ class MacArrivalApplication : public Application
         mac->Enqueue(packet,m_destination,mac->GetAddress(),Tid());
         g_directAdmitted[AcNo()]+=demand.bytes;
     }
+    void ScheduleNextBulkSession()
+    {
+        if(!m_running) return;
+        m_sessionPending=false;
+        const double wait=m_row.model=="FTP"?m_exponential->GetValue(180.0,0.0):m_exponential->GetValue(30.0,0.0);
+        m_modelEvent=Simulator::Schedule(Seconds(wait),m_row.model=="FTP"?
+            &MacArrivalApplication::FtpSession:&MacArrivalApplication::HttpSession,this);
+    }
     void AdmissionTick()
     {
         // A zero watermark is the standards-neutral immediate-admission mode:
@@ -945,10 +953,7 @@ class MacArrivalApplication : public Application
         }
         if(m_pending.empty() && m_sessionPending)
         {
-            m_sessionPending=false;
-            const double wait=m_row.model=="FTP"?m_exponential->GetValue(180.0,0.0):m_exponential->GetValue(30.0,0.0);
-            m_modelEvent=Simulator::Schedule(Seconds(wait),m_row.model=="FTP"?
-                &MacArrivalApplication::FtpSession:&MacArrivalApplication::HttpSession,this);
+            ScheduleNextBulkSession();
         }
         const double factor=m_pollUniform->GetValue(0.5,1.5);
         m_admissionEvent=Simulator::Schedule(MicroSeconds(std::max(1.0,factor*m_admissionPollUs)),
@@ -1000,7 +1005,15 @@ class MacArrivalApplication : public Application
         NS_FATAL_ERROR("Truncated lognormal rejection sampler failed"); return minimum;
     }
     void FtpSession()
-    { if(m_running){m_sessionPending=true; Generate(TruncatedLognormal(14.45,0.35,1,5*1024*1024),"FTP_FILE");} }
+    {
+        if(!m_running) return;
+        m_sessionPending=true;
+        Generate(TruncatedLognormal(14.45,0.35,1,5*1024*1024),"FTP_FILE");
+        // Immediate-admission mode has no AdmissionTick.  Once every MSDU has
+        // been handed to the native MAC queue, start the independent reading
+        // interval here instead of silently stopping after the first file.
+        if(m_highWatermark==0) ScheduleNextBulkSession();
+    }
     void HttpSession()
     {
         if(!m_running) return;
@@ -1012,7 +1025,13 @@ class MacArrivalApplication : public Application
                                          &MacArrivalApplication::BeginHttpPage,this,bytes,objects);
     }
     void BeginHttpPage(uint64_t bytes,uint32_t objects)
-    { m_sessionPending=true; Generate(bytes,"HTTP_PAGE_OBJECTS="+std::to_string(objects)); }
+    {
+        m_sessionPending=true;
+        Generate(bytes,"HTTP_PAGE_OBJECTS="+std::to_string(objects));
+        // As with FTP, zero-watermark mode submits synchronously and therefore
+        // must schedule the next page without relying on admission polling.
+        if(m_highWatermark==0) ScheduleNextBulkSession();
+    }
     void HttpRequest()
     {
         if(!m_running) return;

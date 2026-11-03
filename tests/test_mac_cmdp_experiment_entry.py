@@ -85,3 +85,23 @@ def test_immediate_mac_admission_does_not_schedule_polling():
     tick = source[tick_start:tick_end]
     assert "if(!m_running || m_highWatermark==0) return;" in tick
 
+
+def test_immediate_mac_admission_reschedules_ftp_and_http_sessions():
+    source = (ROOT / "ns3_ext/tgax-control.cc").read_text(encoding="utf-8")
+    helper_start = source.index("void ScheduleNextBulkSession()")
+    helper_end = source.index("void AdmissionTick()", helper_start)
+    helper = source[helper_start:helper_end]
+    assert 'm_row.model=="FTP"' in helper
+    assert "&MacArrivalApplication::FtpSession" in helper
+    assert "&MacArrivalApplication::HttpSession" in helper
+
+    ftp_start = source.index("void FtpSession()", helper_end)
+    ftp_end = source.index("void HttpSession()", ftp_start)
+    ftp = source[ftp_start:ftp_end]
+    assert "if(m_highWatermark==0) ScheduleNextBulkSession();" in ftp
+
+    page_start = source.index("void BeginHttpPage", ftp_end)
+    page_end = source.index("void HttpRequest()", page_start)
+    page = source[page_start:page_end]
+    assert "if(m_highWatermark==0) ScheduleNextBulkSession();" in page
+
